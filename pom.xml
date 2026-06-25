@@ -13,6 +13,7 @@
         <module>infrastructure-services/eureka-server</module>
         <module>infrastructure-services/api-gateway</module>
         <module>infrastructure-services/config-server</module>
+        <module>business-services/room-service</module>
     </modules>
 
     <properties>

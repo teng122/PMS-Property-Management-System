@@ -1,7 +1,9 @@
 version: '3.8'
 
 services:
-  # Cụm database PostgreSQL riêng biệt cho từng service nghiệp vụ
+  # =========================================================================
+  # 1. CỤM DATABASE (GIỮ NGUYÊN - CHỈ THÊM NETWORKS)
+  # =========================================================================
   postgres-s1-identity:
     image: postgres:15-alpine
     container_name: postgres-identity
@@ -11,6 +13,8 @@ services:
       POSTGRES_USER: user_identity
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_identity_db
+    networks:
+      - hotel-network
 
   postgres-s2-booking:
     image: postgres:15-alpine
@@ -21,6 +25,8 @@ services:
       POSTGRES_USER: user_booking
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_booking_db
+    networks:
+      - hotel-network
 
   postgres-s3-amenities:
     image: postgres:15-alpine
@@ -31,6 +37,8 @@ services:
       POSTGRES_USER: user_amenities
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_amenities_db
+    networks:
+      - hotel-network
 
   postgres-s4-housekeeping:
     image: postgres:15-alpine
@@ -41,6 +49,8 @@ services:
       POSTGRES_USER: user_housekeeping
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_housekeeping_db
+    networks:
+      - hotel-network
 
   postgres-s5-billing:
     image: postgres:15-alpine
@@ -51,10 +61,59 @@ services:
       POSTGRES_USER: user_billing
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_billing_db
+    networks:
+      - hotel-network
 
-  # Bộ nhớ đệm dùng chung
   redis-cache:
     image: redis:7-alpine
     container_name: hotel-redis
     ports:
       - "6379:6379"
+    networks:
+      - hotel-network
+
+  # =========================================================================
+  # 2. CỤM HẠ TẦNG JAVA (THÊM MỚI VÀO PHÍA DƯỚI)
+  # =========================================================================
+  config-server:
+    build:
+      context: ./infrastructure-services/config-server
+    container_name: hotel-config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+    networks:
+      - hotel-network
+
+  eureka-server:
+    build:
+      context: ./infrastructure-services/eureka-server
+    container_name: hotel-eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    depends_on:
+      - config-server
+    networks:
+      - hotel-network
+
+  api-gateway:
+    build:
+      context: ./infrastructure-services/api-gateway
+    container_name: hotel-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    depends_on:
+      - eureka-server
+    networks:
+      - hotel-network
+
+# Khai báo mạng ảo dùng chung để các container nhìn thấy nhau
+networks:
+  hotel-network:
+    driver: bridge
