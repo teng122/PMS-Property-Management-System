@@ -1,0 +1,12 @@
+server:
+  port: 8888
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native # Sử dụng lưu trữ file local trong dự án cho đơn giản khi làm đồ án
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/configfiles

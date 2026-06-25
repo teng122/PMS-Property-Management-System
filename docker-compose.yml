@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Cụm database PostgreSQL riêng biệt cho từng service nghiệp vụ
+  postgres-s1-identity:
+    image: postgres:15-alpine
+    container_name: postgres-identity
+    ports:
+      - "5431:5432"
+    environment:
+      POSTGRES_USER: user_identity
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: hotel_identity_db
+
+  postgres-s2-booking:
+    image: postgres:15-alpine
+    container_name: postgres-booking
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user_booking
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: hotel_booking_db
+
+  postgres-s3-amenities:
+    image: postgres:15-alpine
+    container_name: postgres-amenities
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: user_amenities
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: hotel_amenities_db
+
+  postgres-s4-housekeeping:
+    image: postgres:15-alpine
+    container_name: postgres-housekeeping
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: user_housekeeping
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: hotel_housekeeping_db
+
+  postgres-s5-billing:
+    image: postgres:15-alpine
+    container_name: postgres-billing
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: user_billing
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: hotel_billing_db
+
+  # Bộ nhớ đệm dùng chung
+  redis-cache:
+    image: redis:7-alpine
+    container_name: hotel-redis
+    ports:
+      - "6379:6379"
