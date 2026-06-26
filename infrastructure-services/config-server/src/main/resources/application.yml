@@ -10,3 +10,16 @@ spring:
       server:
         native:
           search-locations: classpath:/configfiles
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  endpoint:
+    health:
+      show-details: always
+
+  health:
+    defaults:
+      enabled: true
