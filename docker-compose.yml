@@ -7,18 +7,22 @@ services:
   postgres-s1-identity:
     image: postgres:15-alpine
     container_name: postgres-identity
+    restart: unless-stopped
     ports:
       - "5431:5432"
     environment:
       POSTGRES_USER: user_identity
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_identity_db
+    volumes:
+      - identity-db:/var/lib/postgresql/data
     networks:
       - hotel-network
 
   postgres-s2-booking:
     image: postgres:15-alpine
     container_name: postgres-booking
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -31,44 +35,59 @@ services:
   postgres-s3-amenities:
     image: postgres:15-alpine
     container_name: postgres-amenities
+    restart: unless-stopped
     ports:
       - "5433:5432"
     environment:
       POSTGRES_USER: user_amenities
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_amenities_db
+    volumes:
+      - amenities-db:/var/lib/postgresql/data
     networks:
       - hotel-network
 
   postgres-s4-housekeeping:
     image: postgres:15-alpine
     container_name: postgres-housekeeping
+    restart: unless-stopped
     ports:
       - "5434:5432"
     environment:
       POSTGRES_USER: user_housekeeping
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_housekeeping_db
+    volumes:
+      - housekeeping-db:/var/lib/postgresql/data
     networks:
       - hotel-network
 
   postgres-s5-billing:
     image: postgres:15-alpine
     container_name: postgres-billing
+    restart: unless-stopped
     ports:
       - "5435:5432"
     environment:
       POSTGRES_USER: user_billing
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: hotel_billing_db
+    volumes:
+      - billing-db:/var/lib/postgresql/data
     networks:
       - hotel-network
 
   redis-cache:
     image: redis:7-alpine
     container_name: hotel-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+    command: redis-server --appendonly yes
+
     networks:
       - hotel-network
 
@@ -78,38 +97,84 @@ services:
   config-server:
     build:
       context: ./infrastructure-services/config-server
+
     container_name: hotel-config-server
+
+    restart: unless-stopped
+
     ports:
       - "8888:8888"
+
     environment:
-      - SPRING_PROFILES_ACTIVE=native
+      SPRING_PROFILES_ACTIVE: native
+
+    healthcheck:
+      test: [ "CMD","wget","-q","--spider","http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
     networks:
       - hotel-network
 
   eureka-server:
     build:
       context: ./infrastructure-services/eureka-server
+
     container_name: hotel-eureka-server
+
+    restart: unless-stopped
+
     ports:
       - "8761:8761"
+
     environment:
-      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
+
+    healthcheck:
+      test: [ "CMD","wget","-q","--spider","http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
     networks:
       - hotel-network
 
   api-gateway:
     build:
       context: ./infrastructure-services/api-gateway
+
     container_name: hotel-api-gateway
+
+    restart: unless-stopped
+
     ports:
       - "8080:8080"
+
     environment:
-      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
     depends_on:
-      - eureka-server
+      config-server:
+        condition: service_healthy
+
+      eureka-server:
+        condition: service_healthy
+
+    healthcheck:
+      test: [ "CMD","wget","-q","--spider","http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
     networks:
       - hotel-network
 
@@ -117,3 +182,11 @@ services:
 networks:
   hotel-network:
     driver: bridge
+
+volumes:
+  identity-db:
+  booking-db:
+  amenities-db:
+  housekeeping-db:
+  billing-db:
+  redis-data:
