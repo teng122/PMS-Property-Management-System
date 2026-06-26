@@ -1,1 +1,4 @@
-api-gateway/.dockerignore
+target
+.idea
+.git
+*.iml
