@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="api-gateway" />
         <module name="config-server" />
+        <module name="housekeeping-service" />
         <module name="room-service" />
         <module name="eureka-server" />
       </profile>
