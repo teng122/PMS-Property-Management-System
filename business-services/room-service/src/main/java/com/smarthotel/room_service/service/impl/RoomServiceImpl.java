@@ -48,4 +48,19 @@ public class RoomServiceImpl implements RoomService {
 
         return response;
     }
+
+    @Transactional(readOnly = true)
+    public RoomResponse getRoomById(UUID id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với ID: " + id));
+        
+        RoomResponse response = new RoomResponse();
+        response.setId(room.getId());
+        response.setRoomNumber(room.getRoomNumber());
+        response.setType(room.getType());
+        response.setPrice(room.getPrice());
+        response.setStatus(room.getStatus());
+        
+        return response;
+    }
 }

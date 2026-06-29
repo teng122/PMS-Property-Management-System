@@ -31,4 +31,9 @@ public class RoomController {
             return ResponseEntity.status(500).body("LỖI THẬT SỰ LÀ: " + e.getMessage() + " | Tại: " + e.getClass().getName());
         }
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RoomResponse> findById(@PathVariable UUID id) {
+        return ResponseEntity.ok(roomService.getRoomById(id));
+    }
 }
