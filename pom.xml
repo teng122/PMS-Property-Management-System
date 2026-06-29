@@ -15,6 +15,7 @@
         <module>infrastructure-services/config-server</module>
         <module>business-services/room-service</module>
         <module>business-services/booking-service</module>
+        <module>business-services/amenities-service</module>
     </modules>
 
     <properties>
