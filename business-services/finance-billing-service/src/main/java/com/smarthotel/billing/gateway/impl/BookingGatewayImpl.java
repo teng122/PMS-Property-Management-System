@@ -1,7 +1,7 @@
 package com.smarthotel.billing.gateway.impl;
 
 import com.smarthotel.billing.client.BookingClient;
-import com.smarthotel.billing.dto.BookingBillingDTO;
+import com.smarthotel.billing.dto.BookingInfoDTO;
 import com.smarthotel.billing.gateway.BookingGateway;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -19,7 +19,7 @@ public class BookingGatewayImpl implements BookingGateway {
     }
 
     @Override
-    public BookingBillingDTO getBillingInfo(UUID bookingId) {
-        return client.getBillingInfo(bookingId);
+    public BookingInfoDTO getBooking(UUID bookingId) {
+        return client.getBooking(bookingId);
     }
 }

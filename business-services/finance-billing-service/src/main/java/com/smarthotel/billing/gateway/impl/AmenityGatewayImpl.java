@@ -13,6 +13,8 @@ import java.util.UUID;
 @Profile("!mock")
 public class AmenityGatewayImpl implements AmenityGateway {
 
+    private static final String STATUS_BILLED = "BILLED";
+
     private final AmenityClient client;
 
     public AmenityGatewayImpl(AmenityClient client) {
@@ -25,7 +27,10 @@ public class AmenityGatewayImpl implements AmenityGateway {
     }
 
     @Override
-    public void markBilled(UUID roomId) {
-        client.markBilled(roomId);
+    public void markBilled(List<UUID> orderIds) {
+        // S3 cap nhat theo tung order id (PUT /orders/{id}/status?status=BILLED)
+        for (UUID orderId : orderIds) {
+            client.updateOrderStatus(orderId, STATUS_BILLED);
+        }
     }
 }

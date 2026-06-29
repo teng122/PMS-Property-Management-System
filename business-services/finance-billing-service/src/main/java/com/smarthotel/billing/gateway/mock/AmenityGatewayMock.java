@@ -19,15 +19,17 @@ public class AmenityGatewayMock implements AmenityGateway {
 
     @Override
     public List<UnpaidAmenityDTO> getUnpaid(UUID roomId) {
-        // serviceCharge = 30.000 + 45.000 = 75.000
+        // serviceCharge = totalPrice (30.000) + totalPrice (45.000) = 75.000
         return List.of(
-                new UnpaidAmenityDTO(UUID.randomUUID(), "Coca", 2, new BigDecimal("30000")),
-                new UnpaidAmenityDTO(UUID.randomUUID(), "Mi ly", 1, new BigDecimal("45000"))
+                new UnpaidAmenityDTO(UUID.randomUUID(), roomId, UUID.randomUUID(),
+                        "Coca", new BigDecimal("15000"), 2, new BigDecimal("30000"), "PENDING"),
+                new UnpaidAmenityDTO(UUID.randomUUID(), roomId, UUID.randomUUID(),
+                        "Mi ly", new BigDecimal("45000"), 1, new BigDecimal("45000"), "DELIVERED")
         );
     }
 
     @Override
-    public void markBilled(UUID roomId) {
-        log.info("[MOCK] markBilled room={} -> no-op", roomId);
+    public void markBilled(List<UUID> orderIds) {
+        log.info("[MOCK] markBilled orders={} -> no-op", orderIds);
     }
 }

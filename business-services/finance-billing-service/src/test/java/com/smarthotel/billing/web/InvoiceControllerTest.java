@@ -44,7 +44,8 @@ class InvoiceControllerTest {
     void generate_tra200_vaJsonDung() throws Exception {
         UUID id = UUID.randomUUID();
         UUID bookingId = UUID.randomUUID();
-        when(service.generate(any(UUID.class))).thenReturn(sampleInvoice(id, bookingId, "UNPAID"));
+        when(service.generate(any(UUID.class)))
+                .thenReturn(sampleInvoice(id, bookingId, "UNPAID"));
 
         mockMvc.perform(post("/api/invoices/generate")
                         .contentType(MediaType.APPLICATION_JSON)

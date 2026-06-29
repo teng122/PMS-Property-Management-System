@@ -5,18 +5,26 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Feign client goi S3 amenities-service.
+ * Khop chinh xac voi contract amenities cung cap (AmenitiesFeignClient + AmenityOrderController):
+ *  - GET  /api/amenities/room/{roomId}/unpaid
+ *  - PUT  /api/amenities/orders/{id}/status?status=BILLED  (danh dau tung order da tinh tien)
+ */
 @Profile("!mock")
-@FeignClient(name = "extra-amenities-service")
+@FeignClient(name = "amenities-service", path = "/api/amenities")
 public interface AmenityClient {
 
-    @GetMapping("/api/amenities/room/{roomId}/unpaid")
+    @GetMapping("/room/{roomId}/unpaid")
     List<UnpaidAmenityDTO> getUnpaid(@PathVariable("roomId") UUID roomId);
 
-    @PostMapping("/api/amenities/room/{roomId}/mark-billed")
-    void markBilled(@PathVariable("roomId") UUID roomId);
+    @PutMapping("/orders/{id}/status")
+    UnpaidAmenityDTO updateOrderStatus(@PathVariable("id") UUID id,
+                                       @RequestParam("status") String status);
 }

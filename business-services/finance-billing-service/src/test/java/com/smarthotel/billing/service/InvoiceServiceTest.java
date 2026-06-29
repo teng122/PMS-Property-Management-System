@@ -6,6 +6,7 @@ import com.smarthotel.billing.domain.InvoiceStatus;
 import com.smarthotel.billing.dto.InvoiceResponse;
 import com.smarthotel.billing.gateway.mock.AmenityGatewayMock;
 import com.smarthotel.billing.gateway.mock.BookingGatewayMock;
+import com.smarthotel.billing.gateway.mock.RoomGatewayMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -16,6 +17,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,7 +37,8 @@ class InvoiceServiceTest {
     void setUp() {
         repo = Mockito.mock(InvoiceRepository.class);
         amenityGateway = Mockito.spy(new AmenityGatewayMock());
-        service = new InvoiceService(repo, new BookingGatewayMock(), amenityGateway);
+        // BookingGatewayMock: 2 dem; RoomGatewayMock: 750.000/dem -> roomCharge = 1.500.000
+        service = new InvoiceService(repo, new BookingGatewayMock(), new RoomGatewayMock(), amenityGateway);
 
         // save tra lai chinh entity duoc luu
         when(repo.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -54,8 +57,8 @@ class InvoiceServiceTest {
         assertThat(resp.totalAmount()).isEqualByComparingTo("1732500");
         assertThat(resp.status()).isEqualTo("UNPAID");
 
-        // S3 phai duoc dong order dung 1 lan, dung roomId tu mock booking
-        verify(amenityGateway, times(1)).markBilled(BookingGatewayMock.MOCK_ROOM_ID);
+        // S3 phai duoc dong order dung 1 lan (danh sach order id da gop vao hoa don)
+        verify(amenityGateway, times(1)).markBilled(anyList());
     }
 
     @Test
