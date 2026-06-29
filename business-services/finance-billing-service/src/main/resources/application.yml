@@ -1,0 +1,44 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: finance-billing-service
+  datasource:
+    # Khop voi service postgres-s5-billing trong docker-compose.yml cua repo
+    # (host port 5435 -> container 5432, db hotel_billing_db, user user_billing)
+    url: jdbc:postgresql://localhost:5435/hotel_billing_db
+    username: user_billing
+    password: password123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+
+  # Mac dinh CHAY DOC LAP: bat profile mock + tat Eureka de dev mot minh
+  profiles:
+    active: standalone,mock
+
+---
+spring:
+  config:
+    activate:
+      on-profile: standalone
+eureka:
+  client:
+    enabled: false        # chay khong can Discovery Server
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
