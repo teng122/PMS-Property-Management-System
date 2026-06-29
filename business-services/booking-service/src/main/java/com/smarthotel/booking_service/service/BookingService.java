@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -42,5 +45,40 @@ public class BookingService {
                 .checkOutDate(booking.getCheckOutDate())
                 .status(booking.getStatus())
                 .build();
+    }
+
+    // 1. Lấy toàn bộ danh sách đơn đặt phòng
+    @Transactional(readOnly = true)
+    public List<Booking> getAllBookings() {
+        return bookingRepository.findAll();
+    }
+
+    // 2. Tìm đơn đặt phòng theo ID
+    @Transactional(readOnly = true)
+    public Booking getBookingById(UUID id) {
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt phòng với ID: " + id));
+    }
+
+    // 3. Cập nhật thông tin đơn đặt phòng
+    @Transactional
+    public Booking updateBooking(UUID id, Booking updatedData) {
+        Booking existingBooking = getBookingById(id);
+
+        // Cập nhật các trường cho phép sửa
+        existingBooking.setCustomerName(updatedData.getCustomerName());
+        existingBooking.setCheckInDate(updatedData.getCheckInDate());
+        existingBooking.setCheckOutDate(updatedData.getCheckOutDate());
+        existingBooking.setStatus(updatedData.getStatus());
+        // Không set lại id, roomId (nếu nghiệp vụ không cho đổi phòng trực tiếp) và createdAt
+
+        return bookingRepository.save(existingBooking);
+    }
+
+    // 4. Xóa đơn đặt phòng
+    @Transactional
+    public void deleteBooking(UUID id) {
+        Booking existingBooking = getBookingById(id);
+        bookingRepository.delete(existingBooking);
     }
 }
