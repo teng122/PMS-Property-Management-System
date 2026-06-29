@@ -5,10 +5,15 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
+      server:
+        webmvc:
+          routes:
+            - id: amenities-service-route
+              uri: lb://amenities-service
+              predicates:
+                - Path=/amenities-service/**
+              filters:
+                - StripPrefix=1
 eureka:
   client:
     service-url:
@@ -26,3 +31,9 @@ management:
   health:
     defaults:
       enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.web.servlet: DEBUG
+    org.springframework.web.client: DEBUG
