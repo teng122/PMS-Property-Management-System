@@ -11,6 +11,7 @@
         <module name="config-server" />
         <module name="room-service" />
         <module name="eureka-server" />
+        <module name="amenities-service" />
         <module name="booking-service" />
       </profile>
     </annotationProcessing>
