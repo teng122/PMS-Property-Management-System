@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: amenities-service
+  cloud:
+    config:
+      uri: http://localhost:8888
