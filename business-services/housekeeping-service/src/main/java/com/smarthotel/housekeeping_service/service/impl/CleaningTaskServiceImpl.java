@@ -1,5 +1,7 @@
 package com.smarthotel.housekeeping_service.service.impl;
 
+import com.smarthotel.housekeeping_service.client.RoomServiceClient;
+import com.smarthotel.housekeeping_service.dto.request.RoomStatusUpdateRequest;
 import com.smarthotel.housekeeping_service.dto.response.CleaningTaskResponse;
 import com.smarthotel.housekeeping_service.dto.response.DirtyRoomResponse;
 import com.smarthotel.housekeeping_service.entity.CleaningTask;
@@ -19,6 +21,7 @@ public class CleaningTaskServiceImpl implements CleaningTaskService {
 
     private final CleaningTaskRepository cleaningTaskRepository;
     private final ModelMapper modelMapper;
+    private final RoomServiceClient roomServiceClient;
 
     @Override
     public List<DirtyRoomResponse> getDirtyRooms() {
@@ -42,9 +45,13 @@ public class CleaningTaskServiceImpl implements CleaningTaskService {
 
         task.setStatus(CleaningTaskStatus.IN_PROGRESS);
 
-        // TODO:
-        // Call Room Service via Feign Client
-        // Update room status to CLEANING
+        RoomStatusUpdateRequest request = new RoomStatusUpdateRequest();
+        request.setStatus("CLEANING");
+
+        roomServiceClient.updateRoomStatus(
+                task.getRoomId(),
+                request
+        );
 
         CleaningTask updatedTask = cleaningTaskRepository.save(task);
 
@@ -64,9 +71,14 @@ public class CleaningTaskServiceImpl implements CleaningTaskService {
 
         task.setStatus(CleaningTaskStatus.COMPLETED);
 
-        // TODO:
-        // Call Room Service via Feign Client
-        // Update room status to AVAILABLE
+
+        RoomStatusUpdateRequest request = new RoomStatusUpdateRequest();
+        request.setStatus("AVAILABLE");
+
+        roomServiceClient.updateRoomStatus(
+                task.getRoomId(),
+                request
+        );
 
         CleaningTask updatedTask = cleaningTaskRepository.save(task);
 
