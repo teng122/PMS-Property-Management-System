@@ -160,6 +160,7 @@ services:
     environment:
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: 3c983a532b4084d5a864bc1fcd89045b4c102047385a86cfef4e659b85c1817c
 
     depends_on:
       config-server:

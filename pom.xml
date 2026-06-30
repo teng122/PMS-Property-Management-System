@@ -18,6 +18,7 @@
         <module>business-services/amenities-service</module>
         <module>business-services/housekeeping-service</module>
         <module>business-services/finance-billing-service</module>
+        <module>business-services/identity-service</module>
     </modules>
 
     <properties>

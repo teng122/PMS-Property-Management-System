@@ -8,6 +8,12 @@ spring:
       server:
         webmvc:
           routes:
+            - id: identity-service-route
+              uri: lb://identity-service
+              predicates:
+                - Path=/identity-service/**
+              filters:
+                - StripPrefix=1
             - id: amenities-service-route
               uri: lb://amenities-service
               predicates:
@@ -55,3 +61,6 @@ logging:
     org.springframework.cloud.gateway: TRACE
     org.springframework.web.servlet: DEBUG
     org.springframework.web.client: DEBUG
+
+jwt:
+  secret: ${JWT_SECRET:3c983a532b4084d5a864bc1fcd89045b4c102047385a86cfef4e659b85c1817c}
