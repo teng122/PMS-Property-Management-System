@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface RoomService {
     List<RoomResponse> getAvailableRooms();
     RoomResponse updateRoomStatus(UUID id, RoomStatusUpdateRequest request);
+    RoomResponse getRoomById(UUID id);
 }
