@@ -19,12 +19,6 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    @PostMapping("/reserve")
-    public ResponseEntity<BookingResponse> reserveRoom(@RequestBody BookingRequest request) {
-        BookingResponse response = bookingService.createReserve(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
     // 1. GET ALL: GET http://localhost:8082/api/bookings
     @GetMapping
     public ResponseEntity<List<Booking>> getAll() {
@@ -48,5 +42,19 @@ public class BookingController {
     public ResponseEntity<String> delete(@PathVariable UUID id) {
         bookingService.deleteBooking(id);
         return ResponseEntity.ok("Xóa thành công đơn đặt phòng có ID: " + id);
+    }
+
+    // tham số đầu vào để chạy {"roomId": "a3b8c2d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d","customerName": "Nguyen Van A"}
+    @PostMapping("/check-in")
+    public ResponseEntity<Booking> walkInCheckIn(@RequestBody Booking walkInData) {
+        Booking newBooking = bookingService.createWalkInCheckIn(walkInData);
+        return new ResponseEntity<>(newBooking, HttpStatus.CREATED);
+    }
+
+    // tham số đầu vào để chạy: {id} query param nằm ở url
+    @PostMapping("/{id}/check-out")
+    public ResponseEntity<Booking> checkOut(@PathVariable("id") UUID id) {
+        Booking checkedOutBooking = bookingService.processCheckOut(id);
+        return ResponseEntity.ok(checkedOutBooking);
     }
 }
