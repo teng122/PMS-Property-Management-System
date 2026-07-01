@@ -11,7 +11,7 @@ public interface RoomServiceClient {
 
     @PutMapping("/api/rooms/{id}/status")
     void updateRoomStatus(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @RequestBody RoomStatusUpdateRequest request
     );
 
