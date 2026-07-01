@@ -1,35 +1,53 @@
 server:
   port: 8080
+
 spring:
   application:
     name: api-gateway
+
   cloud:
     gateway:
       server:
         webmvc:
           routes:
+            - id: identity-service-route
+              uri: lb://identity-service
+              predicates:
+                - Path=/identity-service/**
+              filters:
+                - StripPrefix=1
             - id: amenities-service-route
               uri: lb://amenities-service
               predicates:
                 - Path=/amenities-service/**
               filters:
                 - StripPrefix=1
+
             - id: room-service-route
               uri: lb://room-service
               predicates:
                 - Path=/room-service/**
               filters:
                 - StripPrefix=1
+
             - id: booking-service-route
               uri: lb://booking-service
               predicates:
                 - Path=/booking-service/**
               filters:
                 - StripPrefix=1
+
             - id: finance-billing-service-route
               uri: lb://finance-billing-service
               predicates:
                 - Path=/finance-billing-service/**
+              filters:
+                - StripPrefix=1
+
+            - id: housekeeping-service-route
+              uri: lb://housekeeping-service
+              predicates:
+                - Path=/housekeeping-service/**
               filters:
                 - StripPrefix=1
 eureka:
@@ -55,3 +73,6 @@ logging:
     org.springframework.cloud.gateway: TRACE
     org.springframework.web.servlet: DEBUG
     org.springframework.web.client: DEBUG
+
+jwt:
+  secret: ${JWT_SECRET:3c983a532b4084d5a864bc1fcd89045b4c102047385a86cfef4e659b85c1817c}
