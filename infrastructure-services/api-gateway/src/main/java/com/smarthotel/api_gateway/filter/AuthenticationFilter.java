@@ -86,6 +86,7 @@ public class AuthenticationFilter implements Filter {
         return path.equals("/identity-service/api/auth/login") ||
                path.equals("/identity-service/api/auth/register") ||
                path.equals("/identity-service/api/auth/validate") ||
+               path.equals("/identity-service/api/auth/refresh") ||
                path.equals("/room-service/api/rooms/search") ||
                path.startsWith("/eureka") ||
                path.startsWith("/actuator") ||

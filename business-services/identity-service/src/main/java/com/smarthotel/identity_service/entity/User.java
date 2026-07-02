@@ -30,4 +30,7 @@ public class User {
 
     @Column(nullable = false)
     private String role; // ADMIN, STAFF, CUSTOMER
+
+    @Column(name = "refresh_token", length = 512)
+    private String refreshToken;
 }
