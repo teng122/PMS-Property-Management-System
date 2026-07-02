@@ -40,6 +40,7 @@ public class JwtService {
     public String generateRefreshToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
+                .setId(java.util.UUID.randomUUID().toString()) // Đảm bảo mỗi token luôn độc nhất (ngăn trùng timestamp)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 604800000)) // 7 days (604,800,000 ms)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

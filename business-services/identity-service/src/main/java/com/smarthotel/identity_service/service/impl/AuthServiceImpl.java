@@ -93,7 +93,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
         String token = request.getRefreshToken();
         if (token == null || token.trim().isEmpty() || !jwtService.validateToken(token)) {
