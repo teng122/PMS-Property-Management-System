@@ -26,7 +26,13 @@ public class CleaningTaskServiceImpl implements CleaningTaskService {
     @Override
     public List<DirtyRoomResponse> getDirtyRooms() {
 
-        return cleaningTaskRepository.findByStatus(CleaningTaskStatus.ASSIGNED)
+        return cleaningTaskRepository
+                .findByStatusIn(
+                        List.of(
+                                CleaningTaskStatus.ASSIGNED,
+                                CleaningTaskStatus.IN_PROGRESS
+                        )
+                )
                 .stream()
                 .map(task -> modelMapper.map(task, DirtyRoomResponse.class))
                 .toList();

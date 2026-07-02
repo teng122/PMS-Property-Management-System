@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface CleaningTaskRepository extends JpaRepository<CleaningTask, UUID> {
 
     List<CleaningTask> findByStatus(CleaningTaskStatus status);
+    List<CleaningTask> findByStatusIn(List<CleaningTaskStatus> statuses);
 
     List<CleaningTask> findByStaffId(UUID staffId);
 

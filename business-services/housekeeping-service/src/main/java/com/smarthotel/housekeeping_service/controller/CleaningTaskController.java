@@ -32,7 +32,7 @@ public class CleaningTaskController {
      */
     @PostMapping("/tasks/{id}/start")
     public ResponseEntity<CleaningTaskResponse> startTask(
-            @PathVariable UUID id) {
+            @PathVariable("id") UUID id) {
 
         return ResponseEntity.ok(cleaningTaskService.startTask(id));
     }
@@ -43,7 +43,7 @@ public class CleaningTaskController {
      */
     @PostMapping("/tasks/{id}/complete")
     public ResponseEntity<CleaningTaskResponse> completeTask(
-            @PathVariable UUID id) {
+            @PathVariable("id") UUID id) {
 
         return ResponseEntity.ok(cleaningTaskService.completeTask(id));
     }

@@ -112,6 +112,7 @@ export interface DirtyRoom {
   id: string; // task id
   roomId: string;
   staffId: string;
+  status: CleaningTaskStatus;
 }
 
 export interface CleaningTask {
