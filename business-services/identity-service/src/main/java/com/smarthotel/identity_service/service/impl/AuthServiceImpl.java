@@ -68,7 +68,17 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String token = jwtService.generateToken(user.getUsername(), user.getRole());
-        return new AuthResponse(token, user.getUsername(), user.getRole());
+        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+
+        user.setRefreshToken(refreshToken);
+        userRepository.save(user);
+
+        return AuthResponse.builder()
+                .token(token)
+                .username(user.getUsername())
+                .role(user.getRole())
+                .refreshToken(refreshToken)
+                .build();
     }
 
     @Override
@@ -80,5 +90,37 @@ public class AuthServiceImpl implements AuthService {
             return new TokenValidationResponse(true, username, role);
         }
         return new TokenValidationResponse(false, null, null);
+    }
+
+    @Override
+    public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
+        String token = request.getRefreshToken();
+        if (token == null || token.trim().isEmpty() || !jwtService.validateToken(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh Token không hợp lệ hoặc đã hết hạn");
+        }
+
+        String username = jwtService.getUsernameFromToken(token);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh Token không hợp lệ hoặc đã hết hạn"));
+
+        // PHÁT HIỆN TẤN CÔNG TÁI SỬ DỤNG (REUSE DETECTION):
+        // Nếu token gửi lên hợp lệ nhưng không khớp với token đang lưu trong DB,
+        // chứng tỏ token này là một token cũ đã được xoay vòng trước đó -> Hủy ngay lập tức phiên làm việc!
+        if (user.getRefreshToken() == null || !user.getRefreshToken().equals(token)) {
+            user.setRefreshToken(null);
+            userRepository.save(user);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cảnh báo bảo mật: Refresh Token đã được sử dụng. Vui lòng đăng nhập lại.");
+        }
+
+        String newAccessToken = jwtService.generateToken(user.getUsername(), user.getRole());
+        String newRefreshToken = jwtService.generateRefreshToken(user.getUsername());
+
+        user.setRefreshToken(newRefreshToken);
+        userRepository.save(user);
+
+        return TokenRefreshResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
     }
 }

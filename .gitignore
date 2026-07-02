@@ -35,3 +35,16 @@ Desktop.ini
 *.tmp
 *.bak
 *.swp
+
+# Node.js and Frontend
+node_modules/
+**/node_modules/
+frontend/node_modules/
+.env
+.env.local
+dist/
+**/dist/
+
+# Next.js
+.next/
+**/.next/
