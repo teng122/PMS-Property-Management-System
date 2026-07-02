@@ -17,7 +17,7 @@ import java.security.Key;
 import java.util.*;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10) // chạy SAU CorsFilter (HIGHEST_PRECEDENCE)
 public class AuthenticationFilter implements Filter {
 
     @Value("${jwt.secret}")
@@ -35,6 +35,12 @@ public class AuthenticationFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String path = httpRequest.getRequestURI();
+
+        // 0. CORS preflight: để CorsFilter trả lời, không yêu cầu token
+        if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         // 1. Skip authentication for public routes
         if (isPublicPath(path)) {
