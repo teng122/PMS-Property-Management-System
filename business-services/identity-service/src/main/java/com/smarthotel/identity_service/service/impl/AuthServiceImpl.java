@@ -93,18 +93,24 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
         String token = request.getRefreshToken();
         if (token == null || token.trim().isEmpty() || !jwtService.validateToken(token)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh Token không hợp lệ hoặc đã hết hạn");
         }
 
-        User user = userRepository.findByRefreshToken(token)
+        String username = jwtService.getUsernameFromToken(token);
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh Token không hợp lệ hoặc đã hết hạn"));
 
-        String username = jwtService.getUsernameFromToken(token);
-        if (!user.getUsername().equals(username)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh Token không khớp người dùng");
+        // PHÁT HIỆN TẤN CÔNG TÁI SỬ DỤNG (REUSE DETECTION):
+        // Nếu token gửi lên hợp lệ nhưng không khớp với token đang lưu trong DB,
+        // chứng tỏ token này là một token cũ đã được xoay vòng trước đó -> Hủy ngay lập tức phiên làm việc!
+        if (user.getRefreshToken() == null || !user.getRefreshToken().equals(token)) {
+            user.setRefreshToken(null);
+            userRepository.save(user);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cảnh báo bảo mật: Refresh Token đã được sử dụng. Vui lòng đăng nhập lại.");
         }
 
         String newAccessToken = jwtService.generateToken(user.getUsername(), user.getRole());
