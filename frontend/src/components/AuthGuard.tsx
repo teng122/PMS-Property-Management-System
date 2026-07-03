@@ -11,10 +11,15 @@ import type { Role } from "@/types";
 export function AuthGuard({ role, children }: { role: Role; children: React.ReactNode }) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const [ready, setReady] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // Chờ hydrate zustand-persist ở client trước khi quyết định.
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
     if (!user) {
       router.replace("/login");
       return;
@@ -23,9 +28,11 @@ export function AuthGuard({ role, children }: { role: Role; children: React.Reac
       router.replace(homeForRole(user.role));
       return;
     }
-    setReady(true);
-  }, [user, role, router]);
+  }, [user, role, router, hydrated]);
 
-  if (!ready) return <LoadingBlock label="Đang kiểm tra phiên đăng nhập..." />;
+  if (!hydrated || !user || user.role !== role) {
+    return <LoadingBlock label="Đang kiểm tra phiên đăng nhập..." />;
+  }
+
   return <>{children}</>;
 }

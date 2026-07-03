@@ -9,10 +9,16 @@ import { LoadingBlock } from "@/components/ui";
 export default function RootPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     router.replace(user ? homeForRole(user.role) : "/login");
-  }, [user, router]);
+  }, [user, router, hydrated]);
 
   return <LoadingBlock label="Đang chuyển hướng..." />;
 }
