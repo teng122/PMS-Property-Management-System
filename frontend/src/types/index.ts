@@ -11,8 +11,14 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   username: string;
   role: Role;
+}
+
+export interface TokenRefreshResponse {
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface LoginRequest {
