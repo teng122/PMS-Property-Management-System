@@ -62,6 +62,13 @@ public class AmenityOrderServiceImpl implements AmenityOrderService {
         return mapToResponse(updated);
     }
 
+    @Override
+    public List<AmenityOrderResponse> getAllOrders() {
+        return amenityOrderRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private AmenityOrderResponse mapToResponse(AmenityOrder order) {
         AmenityOrderResponse response = new AmenityOrderResponse();
         response.setId(order.getId());

@@ -9,4 +9,5 @@ public interface AmenityOrderService {
     AmenityOrderResponse createOrder(AmenityOrderCreateRequest request);
     List<AmenityOrderResponse> getUnpaidByRoomId(UUID roomId);
     AmenityOrderResponse updateOrderStatus(UUID id, String status);
+    List<AmenityOrderResponse> getAllOrders();
 }

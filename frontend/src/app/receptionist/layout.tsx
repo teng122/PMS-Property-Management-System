@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, ClipboardList } from "lucide-react";
+import { LayoutGrid, ClipboardList, ConciergeBell } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AppShell } from "@/components/AppShell";
 
@@ -13,6 +13,7 @@ export default function ReceptionistLayout({ children }: { children: React.React
         nav={[
           { href: "/receptionist", label: "Sơ đồ phòng", icon: <LayoutGrid className="h-4 w-4" /> },
           { href: "/receptionist/bookings", label: "Đặt phòng", icon: <ClipboardList className="h-4 w-4" /> },
+          { href: "/receptionist/service-orders", label: "Dịch vụ phòng", icon: <ConciergeBell className="h-4 w-4" /> },
         ]}
       >
         {children}

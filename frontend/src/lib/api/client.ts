@@ -56,7 +56,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(err);
     }
 
-    if (err?.response?.status === 401 && !originalRequest._retry) {
+    const isAuthUrl =
+      originalRequest.url?.includes("/identity-service/api/auth/login") ||
+      originalRequest.url?.includes("/identity-service/api/auth/register");
+
+    if (err?.response?.status === 401 && !originalRequest._retry && !isAuthUrl) {
       if (isRefreshing) {
         // Đã có tiến trình refresh đang chạy, đẩy request này vào hàng đợi
         return new Promise((resolve, reject) => {

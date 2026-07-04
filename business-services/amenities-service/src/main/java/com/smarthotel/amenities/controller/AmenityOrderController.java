@@ -32,4 +32,9 @@ public class AmenityOrderController {
             @RequestParam("status") String status) {
         return ResponseEntity.ok(amenityOrderService.updateOrderStatus(id, status));
     }
+
+    @GetMapping("/orders")
+    public ResponseEntity<List<AmenityOrderResponse>> getAllOrders() {
+        return ResponseEntity.ok(amenityOrderService.getAllOrders());
+    }
 }

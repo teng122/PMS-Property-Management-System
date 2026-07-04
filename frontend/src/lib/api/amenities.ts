@@ -19,4 +19,5 @@ export const amenityApi = {
     apiClient.get<AmenityOrder[]>(`${BASE}/room/${roomId}/unpaid`),
   updateOrderStatus: (id: string, status: OrderStatus) =>
     apiClient.put<AmenityOrder>(`${BASE}/orders/${id}/status`, null, { params: { status } }),
+  getAllOrders: () => apiClient.get<AmenityOrder[]>(`${BASE}/orders`),
 };

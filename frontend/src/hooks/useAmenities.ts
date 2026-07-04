@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { amenityApi } from "@/lib/api/amenities";
-import type { AmenityCreateRequest, AmenityOrderCreateRequest } from "@/types";
+import type { AmenityCreateRequest, AmenityOrderCreateRequest, OrderStatus } from "@/types";
 
 export function useAmenities() {
   return useQuery({
@@ -32,7 +32,27 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: AmenityOrderCreateRequest) =>
       amenityApi.createOrder(data).then((r) => r.data),
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ["amenity-orders", "unpaid", vars.roomId] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["amenity-orders", "unpaid", vars.roomId] });
+      qc.invalidateQueries({ queryKey: ["amenity-orders", "all"] });
+    },
+  });
+}
+
+export function useAllOrders() {
+  return useQuery({
+    queryKey: ["amenity-orders", "all"],
+    queryFn: () => amenityApi.getAllOrders().then((r) => r.data),
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
+      amenityApi.updateOrderStatus(id, status).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["amenity-orders"] });
+    },
   });
 }

@@ -51,6 +51,21 @@ export const BOOKING_STATUS_STYLE: Record<BookingStatus, StatusStyle> = {
 
 /** Trích message lỗi thân thiện từ AxiosError. */
 export function errorMessage(err: unknown, fallback = "Đã có lỗi xảy ra"): string {
-  const anyErr = err as { response?: { data?: { message?: string } }; message?: string };
-  return anyErr?.response?.data?.message ?? anyErr?.message ?? fallback;
+  const anyErr = err as {
+    response?: {
+      status?: number;
+      data?: { message?: string };
+    };
+    message?: string;
+  };
+
+  if (anyErr?.response?.data?.message) {
+    return anyErr.response.data.message;
+  }
+
+  if (anyErr?.response?.status === 401 || anyErr?.response?.status === 403) {
+    return fallback;
+  }
+
+  return anyErr?.message ?? fallback;
 }

@@ -78,7 +78,7 @@ export interface BookingRequest {
 
 // ------- Amenities (amenities-service) -------
 export type AmenityType = "FOOD" | "LAUNDRY" | "SPA";
-export type OrderStatus = "PENDING" | "DELIVERED" | "BILLED";
+export type OrderStatus = "PENDING" | "DELIVERED" | "BILLED" | "CANCELLED";
 
 export interface Amenity {
   id: string;
