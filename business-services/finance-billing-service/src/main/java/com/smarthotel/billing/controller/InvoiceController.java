@@ -1,9 +1,9 @@
-package com.smarthotel.billing.web;
+package com.smarthotel.billing.controller;
 
-import com.smarthotel.billing.domain.Invoice;
-import com.smarthotel.billing.dto.GenerateRequest;
-import com.smarthotel.billing.dto.InvoiceResponse;
-import com.smarthotel.billing.dto.PaymentInitResponse;
+import com.smarthotel.billing.entity.Invoice;
+import com.smarthotel.billing.dto.request.GenerateRequest;
+import com.smarthotel.billing.dto.response.InvoiceResponse;
+import com.smarthotel.billing.dto.response.PaymentInitResponse;
 import com.smarthotel.billing.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

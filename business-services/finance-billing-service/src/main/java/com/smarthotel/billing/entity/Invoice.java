@@ -1,4 +1,4 @@
-package com.smarthotel.billing.domain;
+package com.smarthotel.billing.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

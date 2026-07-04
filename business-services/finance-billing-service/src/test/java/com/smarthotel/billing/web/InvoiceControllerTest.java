@@ -1,7 +1,8 @@
 package com.smarthotel.billing.web;
 
-import com.smarthotel.billing.dto.InvoiceResponse;
-import com.smarthotel.billing.dto.PaymentInitResponse;
+import com.smarthotel.billing.controller.InvoiceController;
+import com.smarthotel.billing.dto.response.InvoiceResponse;
+import com.smarthotel.billing.dto.response.PaymentInitResponse;
 import com.smarthotel.billing.service.InvoiceService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,5 +1,6 @@
-package com.smarthotel.billing.domain;
+package com.smarthotel.billing.repository;
 
+import com.smarthotel.billing.entity.Invoice;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

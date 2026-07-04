@@ -1,8 +1,8 @@
 package com.smarthotel.billing.client;
 
-import com.smarthotel.billing.dto.UnpaidAmenityDTO;
+import com.smarthotel.billing.dto.response.UnpaidAmenityDTO;
+import com.smarthotel.billing.client.fallback.AmenityClientFallback;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,8 +17,7 @@ import java.util.UUID;
  *  - GET  /api/amenities/room/{roomId}/unpaid
  *  - PUT  /api/amenities/orders/{id}/status?status=BILLED  (danh dau tung order da tinh tien)
  */
-@Profile("!mock")
-@FeignClient(name = "amenities-service", path = "/api/amenities")
+@FeignClient(name = "amenities-service", path = "/api/amenities", fallback = AmenityClientFallback.class)
 public interface AmenityClient {
 
     @GetMapping("/room/{roomId}/unpaid")

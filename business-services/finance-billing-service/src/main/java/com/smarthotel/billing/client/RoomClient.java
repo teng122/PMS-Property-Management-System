@@ -1,8 +1,8 @@
 package com.smarthotel.billing.client;
 
-import com.smarthotel.billing.dto.RoomInfoDTO;
+import com.smarthotel.billing.dto.response.RoomInfoDTO;
+import com.smarthotel.billing.client.fallback.RoomClientFallback;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -17,8 +17,7 @@ import java.util.UUID;
  * <pre>GET /api/rooms/{id} -> RoomResponse (da co san field price)</pre>
  * Truoc do, S5 van chay doc lap o profile {@code mock}.
  */
-@Profile("!mock")
-@FeignClient(name = "room-service")
+@FeignClient(name = "room-service", fallback = RoomClientFallback.class)
 public interface RoomClient {
 
     @GetMapping("/api/rooms/{id}")

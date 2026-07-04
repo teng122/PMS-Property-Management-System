@@ -1,6 +1,6 @@
-package com.smarthotel.billing.dto;
+package com.smarthotel.billing.dto.response;
 
-import com.smarthotel.billing.domain.Invoice;
+import com.smarthotel.billing.entity.Invoice;
 
 import java.math.BigDecimal;
 import java.util.UUID;

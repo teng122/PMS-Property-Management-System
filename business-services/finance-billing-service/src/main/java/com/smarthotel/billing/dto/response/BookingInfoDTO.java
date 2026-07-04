@@ -1,4 +1,4 @@
-package com.smarthotel.billing.dto;
+package com.smarthotel.billing.dto.response;
 
 import java.time.LocalDate;
 import java.util.UUID;

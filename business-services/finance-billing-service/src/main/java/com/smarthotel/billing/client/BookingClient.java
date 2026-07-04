@@ -1,8 +1,8 @@
 package com.smarthotel.billing.client;
 
-import com.smarthotel.billing.dto.BookingInfoDTO;
+import com.smarthotel.billing.dto.response.BookingInfoDTO;
+import com.smarthotel.billing.client.fallback.BookingClientFallback;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -13,8 +13,7 @@ import java.util.UUID;
  * Khop voi endpoint that: GET /api/bookings/{id} -> Booking (id, roomId, dates, status...).
  * S5 chi can roomId; roomCharge do client truyen (phuong an C).
  */
-@Profile("!mock")
-@FeignClient(name = "booking-service")
+@FeignClient(name = "booking-service", fallback = BookingClientFallback.class)
 public interface BookingClient {
 
     @GetMapping("/api/bookings/{id}")

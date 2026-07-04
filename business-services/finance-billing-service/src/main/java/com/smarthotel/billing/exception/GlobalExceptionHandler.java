@@ -1,4 +1,4 @@
-package com.smarthotel.billing.web;
+package com.smarthotel.billing.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
