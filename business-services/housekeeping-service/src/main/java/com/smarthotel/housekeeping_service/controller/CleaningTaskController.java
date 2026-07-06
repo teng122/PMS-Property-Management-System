@@ -35,17 +35,30 @@ public class CleaningTaskController {
         return ResponseEntity.ok(cleaningTaskService.getDirtyRooms());
     }
 
+    /**
+     * Lấy danh sách công việc dọn phòng, lọc theo trạng thái và/hoặc nhân viên (màn "Việc của tôi").
+     */
+    @GetMapping("/tasks")
+    public ResponseEntity<List<CleaningTaskResponse>> getTasks(
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "staffId", required = false) UUID staffId) {
+        return ResponseEntity.ok(cleaningTaskService.getTasksByFilters(status, staffId));
+    }
+
     // ==========================================
     // 2. VÒNG ĐỜI CÔNG VIỆC DỌN DẸP (TASK OPERATIONS)
     // ==========================================
 
     /**
      * Bắt đầu tiến hành dọn phòng.
-     * Chuyển trạng thái công việc sang IN_PROGRESS và cập nhật trạng thái phòng vật lý thành CLEANING.
+     * Chuyển trạng thái công việc sang IN_PROGRESS, ghi nhận nhân viên nhận việc (X-User-Id)
+     * và cập nhật trạng thái phòng vật lý thành CLEANING.
      */
     @PostMapping("/tasks/{id}/start")
-    public ResponseEntity<CleaningTaskResponse> startTask(@PathVariable UUID id) {
-        return ResponseEntity.ok(cleaningTaskService.startTask(id));
+    public ResponseEntity<CleaningTaskResponse> startTask(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) UUID staffId) {
+        return ResponseEntity.ok(cleaningTaskService.startTask(id, staffId));
     }
 
     /**

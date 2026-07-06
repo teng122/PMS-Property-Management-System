@@ -280,6 +280,14 @@ public class BookingService {
     }
 
     /**
+     * Lấy danh sách đơn đặt phòng của một khách hàng (dùng cho màn "Booking của tôi").
+     */
+    @Transactional(readOnly = true)
+    public List<Booking> getBookingsByCustomerId(UUID customerId) {
+        return bookingRepository.findByCustomerId(customerId);
+    }
+
+    /**
      * Cập nhật thông tin chi tiết đơn đặt phòng.
      */
     @Transactional

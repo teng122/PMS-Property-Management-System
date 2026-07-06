@@ -11,6 +11,7 @@ import com.smarthotel.amenities_service.entity.AmenityOrderStatus;
 public interface AmenityOrderRepository extends JpaRepository<AmenityOrder, UUID> {
     List<AmenityOrder> findByRoomIdAndStatusIn(UUID roomId, List<AmenityOrderStatus> statuses);
     List<AmenityOrder> findByBookingIdAndStatusIn(UUID bookingId, List<AmenityOrderStatus> statuses);
+    List<AmenityOrder> findByStatusIn(List<AmenityOrderStatus> statuses);
 
     default AmenityOrder findByIdOrThrow(UUID id) {
         return findById(id)

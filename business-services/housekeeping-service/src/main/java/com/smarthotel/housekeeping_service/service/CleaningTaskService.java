@@ -47,6 +47,36 @@ public class CleaningTaskService {
                 .toList();
     }
 
+    /**
+     * Lấy danh sách công việc dọn phòng, lọc theo trạng thái và/hoặc nhân viên (màn "Việc của tôi").
+     * Bỏ trống cả hai = lấy toàn bộ task.
+     */
+    public List<CleaningTaskResponse> getTasksByFilters(String statusStr, UUID staffId) {
+        CleaningTaskStatus status = null;
+        if (statusStr != null && !statusStr.isBlank()) {
+            try {
+                status = CleaningTaskStatus.valueOf(statusStr.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new InvalidCleaningTaskStateException("Trạng thái công việc không hợp lệ: " + statusStr);
+            }
+        }
+
+        List<CleaningTask> tasks;
+        if (status != null && staffId != null) {
+            tasks = cleaningTaskRepository.findByStaffIdAndStatus(staffId, status);
+        } else if (status != null) {
+            tasks = cleaningTaskRepository.findByStatus(status);
+        } else if (staffId != null) {
+            tasks = cleaningTaskRepository.findByStaffId(staffId);
+        } else {
+            tasks = cleaningTaskRepository.findAll();
+        }
+
+        return tasks.stream()
+                .map(task -> modelMapper.map(task, CleaningTaskResponse.class))
+                .toList();
+    }
+
     // ==========================================
     // 2. VÒNG ĐỜI CÔNG VIỆC DỌN DẸP (TASK OPERATIONS)
     // ==========================================
@@ -55,7 +85,7 @@ public class CleaningTaskService {
      * Đánh dấu bắt đầu dọn dẹp một phòng cụ thể.
      * Cập nhật trạng thái phòng buồng sang IN_PROGRESS và đồng bộ trạng thái phòng vật lý sang CLEANING.
      */
-    public CleaningTaskResponse startTask(UUID taskId) {
+    public CleaningTaskResponse startTask(UUID taskId, UUID staffId) {
         CleaningTask task = cleaningTaskRepository.findByIdOrThrow(taskId);
 
         if (task.getStatus() != CleaningTaskStatus.PENDING) {
@@ -63,6 +93,11 @@ public class CleaningTaskService {
         }
 
         task.setStatus(CleaningTaskStatus.IN_PROGRESS);
+        // Ghi nhận nhân viên nhận việc để hỗ trợ màn "Việc của tôi"
+        if (staffId != null) {
+            task.setStaffId(staffId);
+        }
+        task.setAssignedAt(LocalDateTime.now());
 
         RoomStatusUpdateRequest request = new RoomStatusUpdateRequest();
         request.setStatus(RoomStatus.CLEANING.name());
@@ -90,6 +125,7 @@ public class CleaningTaskService {
         }
 
         task.setStatus(CleaningTaskStatus.COMPLETED);
+        task.setCompletedAt(LocalDateTime.now());
 
         RoomStatusUpdateRequest request = new RoomStatusUpdateRequest();
         request.setStatus(RoomStatus.AVAILABLE.name());

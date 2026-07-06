@@ -20,6 +20,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                 .orElseThrow(() -> new BookingNotFoundException("Không tìm thấy đơn đặt phòng với ID: " + id));
     }
 
+    List<Booking> findByCustomerId(UUID customerId);
+
     @Query("SELECT DISTINCT b.roomId FROM Booking b " +
            "WHERE b.status NOT IN (com.smarthotel.booking_service.entity.BookingStatus.CANCELLED, com.smarthotel.booking_service.entity.BookingStatus.NO_SHOW) " +
            "AND b.checkOutDate > :start AND b.checkInDate < :end")

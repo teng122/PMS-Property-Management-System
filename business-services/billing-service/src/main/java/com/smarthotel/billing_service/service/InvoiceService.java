@@ -154,6 +154,37 @@ public class InvoiceService {
     // ==========================================
 
     /**
+     * Lấy toàn bộ danh sách hóa đơn trong hệ thống.
+     */
+    public List<InvoiceResponse> getAllInvoices() {
+        return repo.findAll().stream()
+                .map(InvoiceResponse::from)
+                .toList();
+    }
+
+    /**
+     * Thống kê doanh thu cho Dashboard: tổng tiền phòng, dịch vụ, thuế và doanh thu (tính trên hóa đơn PAID).
+     */
+    public com.smarthotel.billing_service.dto.RevenueStatsResponse getRevenueStats() {
+        List<Invoice> all = repo.findAll();
+        List<Invoice> paid = repo.findByStatus(InvoiceStatus.PAID);
+
+        BigDecimal roomRevenue = paid.stream().map(Invoice::getRoomCharge).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal serviceRevenue = paid.stream().map(Invoice::getServiceCharge).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal taxTotal = paid.stream().map(Invoice::getTax).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalRevenue = paid.stream().map(Invoice::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new com.smarthotel.billing_service.dto.RevenueStatsResponse(
+                all.size(),
+                paid.size(),
+                all.size() - paid.size(),
+                roomRevenue,
+                serviceRevenue,
+                taxTotal,
+                totalRevenue);
+    }
+
+    /**
      * Tra cứu hóa đơn bằng ID hóa đơn.
      */
     public Invoice findById(UUID id) {

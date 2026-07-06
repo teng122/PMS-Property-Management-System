@@ -38,6 +38,12 @@ public class AuthenticationFilter implements Filter {
 
         String path = httpRequest.getRequestURI();
 
+        // 0. Cho phép CORS preflight (OPTIONS) đi qua để CorsFilter xử lý (không yêu cầu token)
+        if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // 1. Skip authentication for public routes
         if (isPublicPath(path)) {
             chain.doFilter(request, response);

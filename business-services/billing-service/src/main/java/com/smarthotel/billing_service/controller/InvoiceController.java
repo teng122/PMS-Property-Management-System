@@ -4,12 +4,14 @@ import com.smarthotel.billing_service.entity.Invoice;
 import com.smarthotel.billing_service.dto.GenerateRequest;
 import com.smarthotel.billing_service.dto.InvoiceResponse;
 import com.smarthotel.billing_service.dto.PaymentInitResponse;
+import com.smarthotel.billing_service.dto.RevenueStatsResponse;
 import com.smarthotel.billing_service.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -62,6 +64,23 @@ public class InvoiceController {
     // ==========================================
     // 3. TRA CỨU HÓA ĐƠN (INVOICE QUERIES)
     // ==========================================
+
+    /**
+     * Lấy danh sách toàn bộ hóa đơn trong hệ thống.
+     */
+    @GetMapping
+    public ResponseEntity<List<InvoiceResponse>> getAll() {
+        return ResponseEntity.ok(service.getAllInvoices());
+    }
+
+    /**
+     * Thống kê doanh thu cho màn hình Dashboard (chỉ ADMIN).
+     */
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RevenueStatsResponse> stats() {
+        return ResponseEntity.ok(service.getRevenueStats());
+    }
 
     /**
      * Tra cứu thông tin chi tiết của một hóa đơn bằng ID hóa đơn.
