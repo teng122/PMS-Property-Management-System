@@ -1,47 +1,48 @@
 package com.smarthotel.booking_service.entity;
-
+import com.smarthotel.booking_service.entity.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "bookings")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Booking {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
+
+    @Column(name = "customer_id", nullable = false)
+    private UUID customerId;
 
     @Column(name = "room_id", nullable = false)
     private UUID roomId;
 
-    @Column(name = "customer_name", nullable = false, length = 255)
-    private String customerName;
-
     @Column(name = "check_in_date", nullable = false)
-    private LocalDate checkInDate;
+    private LocalDateTime checkInDate;
 
-    @Column(name = "check_out_date", nullable = true)
-    private LocalDate checkOutDate;
+    @Column(name = "check_out_date", nullable = false)
+    private LocalDateTime checkOutDate;
 
-    @Enumerated(EnumType.STRING)  
-    @Column(name = "status", nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30, nullable = false)
     private BookingStatus status;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
 
-    // Thêm hàm này để hệ thống tự động điền thời gian hiện tại lúc khách bấm đặt phòng
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    @Column(name = "deposit_amount", nullable = false)
+    private BigDecimal depositAmount;
+
+    @Column(name = "is_deposit_paid", nullable = false)
+    private Boolean isDepositPaid;
+
+    @Version
+    private Long version;
 }

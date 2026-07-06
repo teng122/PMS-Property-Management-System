@@ -32,4 +32,9 @@ public class AuthController {
     public ResponseEntity<TokenRefreshResponse> refresh(@RequestBody TokenRefreshRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
     }
+
+    @GetMapping("/users/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable("id") java.util.UUID id) {
+        return ResponseEntity.ok(authService.getUserById(id));
+    }
 }

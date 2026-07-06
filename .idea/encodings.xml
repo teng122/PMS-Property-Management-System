@@ -3,12 +3,18 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/business-services/amenities-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/amenities-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/business-services/billing-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/business-services/billing-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/booking-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/booking-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/business-services/common-shared/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/business-services/common-shared/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/finance-billing-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/finance-billing-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/housekeeping-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/housekeeping-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/business-services/identity-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/business-services/identity-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/room-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/business-services/room-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/infrastructure-services/api-gateway/src/main/java" charset="UTF-8" />

@@ -9,22 +9,29 @@
         <outputRelativeToContentRoot value="true" />
         <module name="config-server" />
         <module name="housekeeping-service" />
+        <module name="common-shared" />
         <module name="booking-service" />
         <module name="api-gateway" />
         <module name="room-service" />
         <module name="eureka-server" />
-        <module name="finance-billing-service" />
+        <module name="identity-service" />
         <module name="amenities-service" />
+        <module name="billing-service" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="finance-billing-service" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="api-gateway" options="-parameters" />
+      <module name="billing-service" options="-parameters" />
       <module name="booking-service" options="-parameters" />
       <module name="config-server" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
       <module name="finance-billing-service" options="-parameters" />
+      <module name="identity-service" options="-parameters" />
       <module name="room-service" options="-parameters" />
     </option>
   </component>

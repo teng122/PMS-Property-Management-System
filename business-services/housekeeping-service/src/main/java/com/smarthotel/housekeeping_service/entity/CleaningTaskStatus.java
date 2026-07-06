@@ -1,7 +1,7 @@
 package com.smarthotel.housekeeping_service.entity;
 
 public enum CleaningTaskStatus {
-    ASSIGNED,
+    PENDING,
     IN_PROGRESS,
     COMPLETED
 }

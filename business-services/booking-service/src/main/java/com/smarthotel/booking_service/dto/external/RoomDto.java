@@ -11,4 +11,5 @@ public class RoomDto {
     private String roomType;
     private String status;
     private BigDecimal price;
+    private UUID reservedBookingId;
 }

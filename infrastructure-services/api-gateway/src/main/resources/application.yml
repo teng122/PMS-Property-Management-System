@@ -37,10 +37,10 @@ spring:
               filters:
                 - StripPrefix=1
 
-            - id: finance-billing-service-route
-              uri: lb://finance-billing-service
+            - id: billing-service-route
+              uri: lb://billing-service
               predicates:
-                - Path=/finance-billing-service/**
+                - Path=/billing-service/**
               filters:
                 - StripPrefix=1
 

@@ -1,0 +1,1 @@
+ALTER TABLE invoices ADD COLUMN deposit_amount DECIMAL(12,2) NOT NULL DEFAULT 0;

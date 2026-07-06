@@ -6,45 +6,54 @@ import com.smarthotel.housekeeping_service.service.CleaningTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controller quản lý luồng công việc dọn dẹp buồng phòng (Housekeeping).
+ * Sắp xếp quy trình: Xem phòng bẩn -> Bắt đầu dọn phòng -> Hoàn thành dọn phòng.
+ */
 @RestController
 @RequestMapping("/api/housekeeping")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'RECEPTIONIST')")
 public class CleaningTaskController {
 
     private final CleaningTaskService cleaningTaskService;
 
+    // ==========================================
+    // 1. TRA CỨU PHÒNG CẦN DỌN (QUERIES)
+    // ==========================================
+
     /**
-     * GET /api/housekeeping/dirty-rooms
-     * Returns all rooms waiting to be cleaned.
+     * Lấy danh sách toàn bộ các phòng đang ở trạng thái bẩn (DIRTY) chờ được nhân viên dọn dẹp.
      */
     @GetMapping("/dirty-rooms")
     public ResponseEntity<List<DirtyRoomResponse>> getDirtyRooms() {
         return ResponseEntity.ok(cleaningTaskService.getDirtyRooms());
     }
 
+    // ==========================================
+    // 2. VÒNG ĐỜI CÔNG VIỆC DỌN DẸP (TASK OPERATIONS)
+    // ==========================================
+
     /**
-     * POST /api/housekeeping/tasks/{id}/start
-     * Marks a cleaning task as IN_PROGRESS.
+     * Bắt đầu tiến hành dọn phòng.
+     * Chuyển trạng thái công việc sang IN_PROGRESS và cập nhật trạng thái phòng vật lý thành CLEANING.
      */
     @PostMapping("/tasks/{id}/start")
-    public ResponseEntity<CleaningTaskResponse> startTask(
-            @PathVariable UUID id) {
-
+    public ResponseEntity<CleaningTaskResponse> startTask(@PathVariable UUID id) {
         return ResponseEntity.ok(cleaningTaskService.startTask(id));
     }
 
     /**
-     * POST /api/housekeeping/tasks/{id}/complete
-     * Marks a cleaning task as COMPLETED.
+     * Hoàn thành dọn phòng.
+     * Chuyển trạng thái công việc sang COMPLETED và cập nhật phòng vật lý thành AVAILABLE.
      */
     @PostMapping("/tasks/{id}/complete")
-    public ResponseEntity<CleaningTaskResponse> completeTask(
-            @PathVariable UUID id) {
-
+    public ResponseEntity<CleaningTaskResponse> completeTask(@PathVariable UUID id) {
         return ResponseEntity.ok(cleaningTaskService.completeTask(id));
     }
 }

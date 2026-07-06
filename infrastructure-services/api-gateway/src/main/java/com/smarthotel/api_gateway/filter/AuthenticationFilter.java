@@ -23,6 +23,8 @@ public class AuthenticationFilter implements Filter {
     @Value("${jwt.secret}")
     private String secretKey;
 
+
+    // dùng HMACSHA chuyển secretKey thành object Key.
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
@@ -55,6 +57,7 @@ public class AuthenticationFilter implements Filter {
 
         String username;
         String role;
+        String userId;
         try {
             // 3. Decode & Validate JWT Token
             Claims claims = Jwts.parserBuilder()
@@ -65,6 +68,7 @@ public class AuthenticationFilter implements Filter {
 
             username = claims.getSubject();
             role = (String) claims.get("role");
+            userId = (String) claims.get("userId");
         } catch (Exception e) {
             httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             httpResponse.setContentType("application/json;charset=UTF-8");
@@ -77,6 +81,9 @@ public class AuthenticationFilter implements Filter {
         wrappedRequest.putHeader("X-User-Username", username);
         if (role != null) {
             wrappedRequest.putHeader("X-User-Role", role);
+        }
+        if (userId != null) {
+            wrappedRequest.putHeader("X-User-Id", userId);
         }
 
         chain.doFilter(wrappedRequest, response);

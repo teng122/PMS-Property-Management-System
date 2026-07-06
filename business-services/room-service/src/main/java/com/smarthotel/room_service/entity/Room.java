@@ -2,32 +2,41 @@ package com.smarthotel.room_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.UUID;
+import com.smarthotel.common_shared.model.RoomStatus;
 import java.math.BigDecimal;
+import java.util.UUID;
+
 
 @Entity
 @Table(name = "rooms")
-@Getter @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "room_number", nullable = false)
+    @Column(name = "room_number", unique = true, nullable = false, length = 20)
     private String roomNumber;
 
-    @Column(nullable = false)
-    private String type; // SINGLE, DOUBLE, VIP
+    @Column(name = "room_type", nullable = false, length = 30)
+    private String roomType; // SINGLE, DOUBLE, SUITE
 
-    @Column(nullable = false)
-    private BigDecimal price;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30, nullable = false)
+    private RoomStatus status;
 
-    @Column(nullable = false)
-    private String status; // AVAILABLE, OCCUPIED, DIRTY, CLEANING
+    @Column(name = "base_price", nullable = false)
+    private BigDecimal basePrice;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hotel_id", nullable = false)
-    private Hotel hotel;
+    @Column(name = "reserved_booking_id")
+    private UUID reservedBookingId;
+
+    private Integer floor;
+
+    @Version
+    private Long version;
 }

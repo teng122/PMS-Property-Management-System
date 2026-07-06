@@ -77,6 +77,21 @@ services:
     networks:
       - hotel-network
 
+  postgres-s6-room:
+    image: postgres:15-alpine
+    container_name: postgres-room
+    restart: unless-stopped
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_USER: user_room
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: hotel_room_db
+    volumes:
+      - room-db:/var/lib/postgresql/data
+    networks:
+      - hotel-network
+
   redis-cache:
     image: redis:7-alpine
     container_name: hotel-redis
@@ -190,4 +205,5 @@ volumes:
   amenities-db:
   housekeeping-db:
   billing-db:
+  room-db:
   redis-data:

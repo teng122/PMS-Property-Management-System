@@ -10,6 +10,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class BookingRequest {
+    private UUID customerId;
     private UUID roomId;
     private String customerName;
     private LocalDate checkInDate;

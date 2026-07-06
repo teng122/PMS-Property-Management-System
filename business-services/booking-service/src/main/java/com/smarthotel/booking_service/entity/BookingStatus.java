@@ -1,7 +1,11 @@
 package com.smarthotel.booking_service.entity;
 
 public enum BookingStatus {
+    PENDING,
+    AWAITING_DEPOSIT,
+    CONFIRMED,
     CHECKED_IN,
     CHECKED_OUT,
-    COMPLETED
+    CANCELLED,
+    NO_SHOW
 }
