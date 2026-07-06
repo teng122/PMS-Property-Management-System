@@ -194,6 +194,133 @@ services:
     networks:
       - hotel-network
 
+  identity-service:
+    build:
+      context: ./business-services/identity-service
+    container_name: hotel-identity-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-identity:5432/hotel_identity_db
+      JWT_SECRET: 3c983a532b4084d5a864bc1fcd89045b4c102047385a86cfef4e659b85c1817c
+    depends_on:
+      postgres-s1-identity:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  room-service:
+    build:
+      context: ./business-services/room-service
+    container_name: hotel-room-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-room:5432/hotel_room_db
+    depends_on:
+      postgres-s6-room:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  booking-service:
+    build:
+      context: ./business-services/booking-service
+    container_name: hotel-booking-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-booking:5432/hotel_booking_db
+    depends_on:
+      postgres-s2-booking:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  amenities-service:
+    build:
+      context: ./business-services/amenities-service
+    container_name: hotel-amenities-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-amenities:5432/hotel_amenities_db
+    depends_on:
+      postgres-s3-amenities:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  housekeeping-service:
+    build:
+      context: ./business-services/housekeeping-service
+    container_name: hotel-housekeeping-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-housekeeping:5432/hotel_housekeeping_db
+    depends_on:
+      postgres-s4-housekeeping:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
+  billing-service:
+    build:
+      context: ./business-services/billing-service
+    container_name: hotel-billing-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-billing:5432/hotel_billing_db
+    depends_on:
+      postgres-s5-billing:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - hotel-network
+
 # Khai báo mạng ảo dùng chung để các container nhìn thấy nhau
 networks:
   hotel-network:

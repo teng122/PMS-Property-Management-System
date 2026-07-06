@@ -1,5 +1,6 @@
 package com.smarthotel.room_service.controller;
 
+import com.smarthotel.room_service.dto.request.RoomCreateRequest;
 import com.smarthotel.room_service.dto.request.RoomStatusUpdateRequest;
 import com.smarthotel.room_service.dto.response.RoomResponse;
 import com.smarthotel.room_service.service.RoomService;
@@ -38,6 +39,15 @@ public class RoomController {
     // ==========================================
     // 2. CẬP NHẬT TRẠNG THÁI PHÒNG (ROOM OPERATIONS)
     // ==========================================
+
+    /**
+     * Admin tạo mới một phòng vật lý.
+     */
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RoomResponse> createRoom(@RequestBody RoomCreateRequest request) {
+        return ResponseEntity.ok(roomService.createRoom(request));
+    }
 
     /**
      * Cập nhật trạng thái vật lý của một phòng cụ thể (ví dụ: OCCUPIED, CLEANING, AVAILABLE).

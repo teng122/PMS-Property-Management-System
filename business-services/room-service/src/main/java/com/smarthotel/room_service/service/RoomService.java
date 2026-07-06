@@ -1,6 +1,7 @@
 package com.smarthotel.room_service.service;
 
 import com.smarthotel.room_service.client.BookingClient;
+import com.smarthotel.room_service.dto.request.RoomCreateRequest;
 import com.smarthotel.room_service.dto.request.RoomStatusUpdateRequest;
 import com.smarthotel.room_service.dto.response.RoomResponse;
 import com.smarthotel.room_service.entity.Room;
@@ -85,6 +86,32 @@ public class RoomService {
         response.setStatus(updatedRoom.getStatus().name());
 
         return response;
+    }
+
+    /**
+     * Admin tạo mới một phòng vật lý.
+     */
+    @Transactional
+    public RoomResponse createRoom(RoomCreateRequest request) {
+        RoomStatus initialStatus;
+        try {
+            initialStatus = request.getStatus() != null 
+                ? RoomStatus.valueOf(request.getStatus().toUpperCase()) 
+                : RoomStatus.AVAILABLE;
+        } catch (IllegalArgumentException e) {
+            initialStatus = RoomStatus.AVAILABLE;
+        }
+
+        Room room = Room.builder()
+                .roomNumber(request.getRoomNumber())
+                .roomType(request.getType() != null ? request.getType().toUpperCase() : "SINGLE")
+                .status(initialStatus)
+                .basePrice(request.getPrice())
+                .floor(1)
+                .build();
+
+        Room saved = roomRepository.save(room);
+        return modelMapper.map(saved, RoomResponse.class);
     }
 
     // ==========================================

@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5431/hotel_identity_db
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5431/hotel_identity_db}
     username: user_identity
     password: password123
     driver-class-name: org.postgresql.Driver
@@ -20,7 +20,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
     register-with-eureka: true
     fetch-registry: true
   instance:

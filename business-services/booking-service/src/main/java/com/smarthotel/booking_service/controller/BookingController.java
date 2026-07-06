@@ -140,11 +140,7 @@ public class BookingController {
         return ResponseEntity.ok("Xóa thành công đơn đặt phòng có ID: " + id);
     }
 
-    /**
-     * Lấy danh sách ID của các phòng đang bận/đã được đặt trong khoảng thời gian nhất định (Dùng nội bộ hệ thống).
-     */
     @GetMapping("/active-room-ids")
-    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<List<UUID>> getActiveRoomIds(
             @RequestParam("checkIn") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
             @RequestParam("checkOut") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut) {
