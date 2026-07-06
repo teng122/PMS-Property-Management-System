@@ -1,6 +1,7 @@
 package com.smarthotel.identity_service.service;
 
 import com.smarthotel.identity_service.dto.*;
+import com.smarthotel.identity_service.entity.RoleName;
 import com.smarthotel.identity_service.entity.User;
 import com.smarthotel.identity_service.repository.UserRepository;
 import com.smarthotel.identity_service.service.JwtService;
@@ -31,12 +32,8 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
         }
 
-        String role = request.getRole();
-        if (role == null || role.trim().isEmpty()) {
-            role = "CUSTOMER";
-        } else {
-            role = role.toUpperCase();
-        }
+        // Đăng ký công khai luôn ép buộc là ROLE_CUSTOMER
+        String role = RoleName.ROLE_CUSTOMER.name();
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -44,6 +41,50 @@ public class AuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .role(role)
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        UserResponse response = new UserResponse();
+        response.setId(savedUser.getId());
+        response.setUsername(savedUser.getUsername());
+        response.setFullName(savedUser.getFullName());
+        response.setEmail(savedUser.getEmail());
+        response.setRole(savedUser.getRole());
+        return response;
+    }
+
+    public UserResponse registerByAdmin(RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên tài khoản đã tồn tại");
+        }
+        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
+        }
+
+        String roleInput = request.getRole();
+        String finalRole;
+        if (roleInput == null || roleInput.trim().isEmpty()) {
+            finalRole = RoleName.ROLE_CUSTOMER.name();
+        } else {
+            String normalized = roleInput.trim().toUpperCase();
+            if (!normalized.startsWith("ROLE_")) {
+                normalized = "ROLE_" + normalized;
+            }
+            try {
+                RoleName roleEnum = RoleName.valueOf(normalized);
+                finalRole = roleEnum.name();
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quyền (role) không hợp lệ. Hợp lệ: ADMIN, RECEPTIONIST, STAFF, CUSTOMER");
+            }
+        }
+
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .role(finalRole)
                 .build();
 
         User savedUser = userRepository.save(user);
