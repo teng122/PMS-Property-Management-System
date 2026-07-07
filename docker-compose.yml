@@ -106,6 +106,35 @@ services:
     networks:
       - hotel-network
 
+  kafka:
+    image: apache/kafka:latest
+    container_name: hotel-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,EXTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    networks:
+      - hotel-network
+
   # =========================================================================
   # 2. CỤM HẠ TẦNG JAVA (THÊM MỚI VÀO PHÍA DƯỚI)
   # =========================================================================
@@ -222,17 +251,22 @@ services:
     container_name: hotel-room-service
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      # Host 8081 bị một JVM do Jenkins spawn chiếm; map ra 8091 để tránh xung đột.
+      # Gateway vẫn gọi room-service qua Eureka + mạng nội bộ Docker (container:8081).
+      - "8091:8081"
     environment:
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-room:5432/hotel_room_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres-s6-room:
         condition: service_started
       config-server:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - hotel-network
@@ -248,12 +282,15 @@ services:
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-booking:5432/hotel_booking_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres-s2-booking:
         condition: service_started
       config-server:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - hotel-network
@@ -269,12 +306,15 @@ services:
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-amenities:5432/hotel_amenities_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres-s3-amenities:
         condition: service_started
       config-server:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - hotel-network
@@ -290,12 +330,15 @@ services:
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-housekeeping:5432/hotel_housekeeping_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres-s4-housekeeping:
         condition: service_started
       config-server:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - hotel-network
@@ -311,12 +354,15 @@ services:
       SPRING_CLOUD_CONFIG_URI: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-billing:5432/hotel_billing_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres-s5-billing:
         condition: service_started
       config-server:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - hotel-network
