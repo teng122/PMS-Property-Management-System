@@ -22,6 +22,9 @@ public interface AmenityClient {
     @GetMapping("/room/{roomId}/unpaid")
     List<UnpaidAmenityDTO> getUnpaid(@PathVariable("roomId") UUID roomId);
 
+    @GetMapping("/booking/{bookingId}/unpaid")
+    List<UnpaidAmenityDTO> getUnpaidByBookingId(@PathVariable("bookingId") UUID bookingId);
+
     @GetMapping("/orders/booking/{bookingId}/unpaid-charge")
     java.math.BigDecimal getUnpaidCharge(@PathVariable("bookingId") UUID bookingId);
 

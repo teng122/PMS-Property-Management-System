@@ -44,6 +44,13 @@ public class RoomService {
      * Liên lạc Feign với Booking Service để lọc bỏ các phòng đang bận.
      */
     public List<RoomResponse> searchAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null) {
+            throw new IllegalArgumentException("Ngày nhận phòng và trả phòng không được để trống!");
+        }
+        if (checkIn.isAfter(checkOut)) {
+            throw new IllegalArgumentException("Ngày trả phòng (check-out) phải ở sau ngày nhận phòng (check-in)!");
+        }
+
         // 1. Gọi sang booking-service để lấy danh sách Room ID bận trong thời gian này
         List<UUID> activeRoomIds = bookingClient.getActiveRoomIds(checkIn, checkOut);
 

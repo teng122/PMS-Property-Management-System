@@ -36,18 +36,14 @@ public class BookingOrderSagaConsumer {
                 // 1. Kiểm tra roomId khớp Booking
                 boolean isRoomMatch = booking.getRoomId().equals(event.getRoomId());
                 
-                // 2. Kiểm tra LocalDateTime.now() nằm trong khoảng checkInDate đến checkOutDate
-                LocalDateTime now = LocalDateTime.now();
-                boolean isTimeValid = !now.isBefore(booking.getCheckInDate()) && !now.isAfter(booking.getCheckOutDate());
-                
-                // 3. Trạng thái phải là CHECKED_IN
+                // 2. Trạng thái phải là CHECKED_IN
                 boolean isCheckedIn = booking.getStatus() == BookingStatus.CHECKED_IN;
 
-                if (isRoomMatch && isTimeValid && isCheckedIn) {
+                if (isRoomMatch && isCheckedIn) {
                     isValid = true;
                 } else {
-                    log.warn("Xác thực đơn tiện ích {} THẤT BẠI: RoomMatch={}, TimeValid={}, CheckedIn={}", 
-                            event.getOrderId(), isRoomMatch, isTimeValid, isCheckedIn);
+                    log.warn("Xác thực đơn tiện ích {} THẤT BẠI: RoomMatch={}, CheckedIn={}", 
+                             event.getOrderId(), isRoomMatch, isCheckedIn);
                 }
             } else {
                 log.warn("Xác thực đơn tiện ích {} THẤT BẠI: Không tìm thấy Booking ID {}", event.getOrderId(), event.getBookingId());

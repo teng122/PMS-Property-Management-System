@@ -61,6 +61,10 @@ public class BookingService {
             throw new BookingNotFoundException("Không tìm thấy thông tin phòng với ID: " + bookingRequest.getRoomId());
         }
 
+        if (bookingRequest.getCheckInDate().isAfter(bookingRequest.getCheckOutDate())) {
+            throw new IllegalArgumentException("Ngày check-out phải sau ngày check-in!");
+        }
+
         long days = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate());
         if (days <= 0) {
             days = 1; // Tối thiểu ở 1 ngày
@@ -111,8 +115,22 @@ public class BookingService {
         if (!RoomStatus.AVAILABLE.name().equalsIgnoreCase(room.getStatus())) {
             throw new InvalidRoomStatusException("Phòng số " + room.getRoomNumber() + " hiện tại không trống để check-in!");
         }
+        if (walkInData.getCheckOutDate() == null) {
+            throw new IllegalArgumentException("Ngày check-out không được trống!");
+        }
+        if (walkInData.getCheckOutDate().toLocalDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Ngày check-out của khách vãng lai phải ở tương lai!");
+        }
+
+        long days = ChronoUnit.DAYS.between(LocalDate.now(), walkInData.getCheckOutDate().toLocalDate());
+        if (days <= 0) {
+            days = 1;
+        }
+        java.math.BigDecimal totalAmount = room.getPrice().multiply(java.math.BigDecimal.valueOf(days));
+        walkInData.setTotalAmount(totalAmount);
 
         walkInData.setCheckInDate(LocalDateTime.now());
+        walkInData.setCheckOutDate(walkInData.getCheckOutDate().toLocalDate().atTime(12, 0));
         walkInData.setStatus(BookingStatus.CHECKED_IN);
         walkInData.setDepositAmount(java.math.BigDecimal.ZERO);
         walkInData.setIsDepositPaid(true);
@@ -154,7 +172,13 @@ public class BookingService {
         Booking savedBooking = self.executeUpdateCheckIn(bookingId);
 
         // Cập nhật trạng thái phòng qua Feign ngoài transaction
-        roomClient.updateRoomStatus(booking.getRoomId(), new RoomStatusUpdateRequest(RoomStatus.OCCUPIED.name()));
+        try {
+            roomClient.updateRoomStatus(booking.getRoomId(), new RoomStatusUpdateRequest(RoomStatus.OCCUPIED.name()));
+        } catch (Exception e) {
+            // Hoàn tác cập nhật cục bộ nếu Feign lỗi
+            self.executeRevertCheckIn(bookingId);
+            throw new RuntimeException("Lỗi khi kết nối Room Service để nhận phòng: " + e.getMessage(), e);
+        }
 
         return savedBooking;
     }
@@ -168,6 +192,17 @@ public class BookingService {
         booking.setCheckInDate(LocalDateTime.now());
         booking.setStatus(BookingStatus.CHECKED_IN);
         return bookingRepository.save(booking);
+    }
+
+    /**
+     * Phương thức phụ trợ để khôi phục trạng thái nếu check-in thất bại.
+     */
+    @Transactional
+    public void executeRevertCheckIn(UUID bookingId) {
+        Booking booking = bookingRepository.findByIdOrThrow(bookingId);
+        booking.setCheckInDate(null);
+        booking.setStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(booking);
     }
 
     // ==========================================
@@ -223,7 +258,7 @@ public class BookingService {
             throw new BookingNotFoundException("Không tìm thấy thông tin phòng từ Room Service!");
         }
 
-        long daysBetween = ChronoUnit.DAYS.between(booking.getCheckInDate(), LocalDateTime.now());
+        long daysBetween = ChronoUnit.DAYS.between(booking.getCheckInDate().toLocalDate(), LocalDate.now());
         if (daysBetween <= 0) {
             daysBetween = 1;
         }
@@ -235,15 +270,21 @@ public class BookingService {
         Booking updatedBooking = self.executeUpdateCheckOut(bookingId);
 
         // Bắn event CheckoutStartedEvent qua Kafka
-        CheckoutStartedEvent event = CheckoutStartedEvent.builder()
-                .eventId(UUID.randomUUID())
-                .bookingId(updatedBooking.getId())
-                .roomId(updatedBooking.getRoomId())
-                .customerId(updatedBooking.getCustomerId())
-                .roomCharge(roomCharge)
-                .timestamp(LocalDateTime.now())
-                .build();
-        bookingEventPublisher.publishCheckoutStarted(event);
+        try {
+            CheckoutStartedEvent event = CheckoutStartedEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .bookingId(updatedBooking.getId())
+                    .roomId(updatedBooking.getRoomId())
+                    .customerId(updatedBooking.getCustomerId())
+                    .roomCharge(roomCharge)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            bookingEventPublisher.publishCheckoutStarted(event);
+        } catch (Exception e) {
+            // Hoàn tác cập nhật cục bộ nếu Kafka lỗi
+            self.executeRevertCheckOut(bookingId, booking.getCheckOutDate());
+            throw new RuntimeException("Lỗi khi gửi sự kiện Check-out lên hệ thống: " + e.getMessage(), e);
+        }
 
         return updatedBooking;
     }
@@ -257,6 +298,17 @@ public class BookingService {
         booking.setCheckOutDate(LocalDateTime.now());
         booking.setStatus(BookingStatus.CHECKED_OUT);
         return bookingRepository.save(booking);
+    }
+
+    /**
+     * Phương thức phụ trợ để khôi phục trạng thái nếu check-out thất bại.
+     */
+    @Transactional
+    public void executeRevertCheckOut(UUID bookingId, LocalDateTime originalCheckOutDate) {
+        Booking booking = bookingRepository.findByIdOrThrow(bookingId);
+        booking.setCheckOutDate(originalCheckOutDate);
+        booking.setStatus(BookingStatus.CHECKED_IN);
+        bookingRepository.save(booking);
     }
 
     // ==========================================

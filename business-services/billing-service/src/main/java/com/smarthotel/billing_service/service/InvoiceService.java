@@ -73,7 +73,7 @@ public class InvoiceService {
         BigDecimal roomCharge = room.price().multiply(BigDecimal.valueOf(nights));
 
         // 3. Lấy thông tin toàn bộ dịch vụ phòng chưa thanh toán
-        List<UnpaidAmenityDTO> unpaidAmenities = amenityClient.getUnpaid(booking.roomId());
+        List<UnpaidAmenityDTO> unpaidAmenities = amenityClient.getUnpaidByBookingId(booking.id());
         BigDecimal serviceCharge = unpaidAmenities.stream()
                 .map(UnpaidAmenityDTO::totalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

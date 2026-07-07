@@ -106,6 +106,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Tên tài khoản hoặc mật khẩu không chính xác");
         }
 
+        if ("BLOCKED".equalsIgnoreCase(user.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        }
+
         String token = jwtService.generateToken(user.getUsername(), user.getRole(), user.getId());
         String refreshToken = jwtService.generateRefreshToken(user.getUsername());
 
@@ -125,7 +129,10 @@ public class AuthService {
         if (valid) {
             String username = jwtService.getUsernameFromToken(token);
             String role = jwtService.getRoleFromToken(token);
-            return new TokenValidationResponse(true, username, role);
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null && !"BLOCKED".equalsIgnoreCase(user.getStatus())) {
+                return new TokenValidationResponse(true, username, role);
+            }
         }
         return new TokenValidationResponse(false, null, null);
     }
@@ -139,6 +146,10 @@ public class AuthService {
         String username = jwtService.getUsernameFromToken(token);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh Token không hợp lệ hoặc đã hết hạn"));
+
+        if ("BLOCKED".equalsIgnoreCase(user.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        }
 
         // PHÁT HIỆN TẤN CÔNG TÁI SỬ DỤNG (REUSE DETECTION):
         // Nếu token gửi lên hợp lệ nhưng không khớp với token đang lưu trong DB,

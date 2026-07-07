@@ -127,15 +127,6 @@ public class CleaningTaskService {
         task.setStatus(CleaningTaskStatus.COMPLETED);
         task.setCompletedAt(LocalDateTime.now());
 
-        RoomStatusUpdateRequest request = new RoomStatusUpdateRequest();
-        request.setStatus(RoomStatus.AVAILABLE.name());
-
-        // Gọi đồng bộ trạng thái phòng vật lý qua Feign Client (Yêu cầu Feign 4)
-        roomServiceClient.updateRoomStatus(
-                task.getRoomId(),
-                request
-        );
-
         CleaningTask updatedTask = cleaningTaskRepository.save(task);
 
         // Bắn event RoomCleanedEvent lên Kafka để Room Service cập nhật trạng thái phòng sang AVAILABLE (Yêu cầu SAGA 1)

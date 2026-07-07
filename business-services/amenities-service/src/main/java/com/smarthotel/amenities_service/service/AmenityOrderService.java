@@ -166,6 +166,20 @@ public class AmenityOrderService {
     }
 
     /**
+     * Lấy toàn bộ các dịch vụ phòng chưa thanh toán (ở trạng thái PENDING hoặc DELIVERED) theo Booking ID để gộp hóa đơn checkout.
+     */
+    public List<AmenityOrderResponse> getUnpaidByBookingId(UUID bookingId) {
+        List<com.smarthotel.amenities_service.entity.AmenityOrderStatus> unpaidStatuses = Arrays.asList(
+                com.smarthotel.amenities_service.entity.AmenityOrderStatus.PENDING,
+                com.smarthotel.amenities_service.entity.AmenityOrderStatus.DELIVERED
+        );
+        List<AmenityOrder> orders = amenityOrderRepository.findByBookingIdAndStatusIn(bookingId, unpaidStatuses);
+        return orders.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Lấy tổng tiền của các đơn dịch vụ phòng chưa trả (PENDING, DELIVERED) dựa theo Booking ID.
      */
     public java.math.BigDecimal getUnpaidChargeByBookingId(UUID bookingId) {

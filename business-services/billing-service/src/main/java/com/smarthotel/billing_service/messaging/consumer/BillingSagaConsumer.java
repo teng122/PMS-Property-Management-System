@@ -42,12 +42,12 @@ public class BillingSagaConsumer {
             return;
         }
 
-        // 1. Lấy danh sách dịch vụ phòng chưa trả (theo phòng) để tính tiền và đóng đơn khi checkout
+        // 1. Lấy danh sách dịch vụ phòng chưa trả (theo booking) để tính tiền và đóng đơn khi checkout
         List<UnpaidAmenityDTO> unpaidOrders;
         try {
-            unpaidOrders = amenityClient.getUnpaid(event.getRoomId());
+            unpaidOrders = amenityClient.getUnpaidByBookingId(event.getBookingId());
         } catch (Exception e) {
-            log.error("Không thể lấy dịch vụ phòng cho phòng {}: {}", event.getRoomId(), e.getMessage());
+            log.error("Không thể lấy dịch vụ phòng cho booking {}: {}", event.getBookingId(), e.getMessage());
             unpaidOrders = Collections.emptyList();
         }
         BigDecimal serviceCharge = unpaidOrders.stream()

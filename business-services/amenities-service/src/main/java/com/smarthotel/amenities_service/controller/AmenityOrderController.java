@@ -76,6 +76,16 @@ public class AmenityOrderController {
     }
 
     /**
+     * Lấy danh sách toàn bộ các đơn dịch vụ phòng chưa thanh toán (PENDING hoặc DELIVERED) của booking để gộp vào hóa đơn khi checkout.
+     * (Gọi từ Billing Service qua Feign Client).
+     */
+    @GetMapping("/booking/{bookingId}/unpaid")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN', 'STAFF')")
+    public ResponseEntity<List<AmenityOrderResponse>> getUnpaidByBookingId(@PathVariable("bookingId") UUID bookingId) {
+        return ResponseEntity.ok(amenityOrderService.getUnpaidByBookingId(bookingId));
+    }
+
+    /**
      * Lấy tổng tiền dịch vụ phòng chưa trả cho một đơn đặt phòng (gọi chéo từ Billing Service).
      */
     @GetMapping("/orders/booking/{bookingId}/unpaid-charge")
