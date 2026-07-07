@@ -131,6 +131,27 @@ public class AmenityOrderService {
     // ==========================================
 
     /**
+     * Lấy danh sách đơn dịch vụ theo trạng thái (chuỗi trạng thái cách nhau bởi dấu phẩy, ví dụ: "PENDING,PREPARING").
+     * Dùng cho màn hàng chờ chuẩn bị của nhân viên bếp/dịch vụ. Bỏ trống trạng thái = lấy tất cả.
+     */
+    public List<AmenityOrderResponse> getOrders(String statusCsv) {
+        List<AmenityOrder> orders;
+        if (statusCsv == null || statusCsv.isBlank()) {
+            orders = amenityOrderRepository.findAll();
+        } else {
+            List<com.smarthotel.amenities_service.entity.AmenityOrderStatus> statuses = Arrays.stream(statusCsv.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(s -> com.smarthotel.amenities_service.entity.AmenityOrderStatus.valueOf(s.toUpperCase()))
+                    .collect(Collectors.toList());
+            orders = amenityOrderRepository.findByStatusIn(statuses);
+        }
+        return orders.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Lấy toàn bộ các dịch vụ phòng chưa thanh toán (ở trạng thái PENDING hoặc DELIVERED) để gộp hóa đơn checkout.
      */
     public List<AmenityOrderResponse> getUnpaidByRoomId(UUID roomId) {

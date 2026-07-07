@@ -35,6 +35,17 @@ public class AmenityOrderController {
         return ResponseEntity.ok(amenityOrderService.createOrder(request));
     }
 
+    /**
+     * Lấy danh sách đơn dịch vụ theo trạng thái (ví dụ: ?status=PENDING,PREPARING) cho màn hàng chờ của bếp/nhân viên dịch vụ.
+     * Bỏ trống status = lấy tất cả đơn.
+     */
+    @GetMapping("/orders")
+    @PreAuthorize("hasAnyRole('STAFF', 'RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<List<AmenityOrderResponse>> getOrders(
+            @RequestParam(value = "status", required = false) String status) {
+        return ResponseEntity.ok(amenityOrderService.getOrders(status));
+    }
+
     // ==========================================
     // 2. CẬP NHẬT TIẾN ĐỘ DỊCH VỤ (OPERATIONS)
     // ==========================================

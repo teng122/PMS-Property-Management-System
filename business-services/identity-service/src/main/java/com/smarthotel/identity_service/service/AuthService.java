@@ -164,13 +164,66 @@ public class AuthService {
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
-        
+        return toResponse(user);
+    }
+
+    // ==========================================
+    // QUẢN TRỊ NGƯỜI DÙNG (ADMIN USER MANAGEMENT)
+    // ==========================================
+
+    /**
+     * Admin lấy toàn bộ danh sách tài khoản người dùng.
+     */
+    public java.util.List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Admin thay đổi quyền (role) của một tài khoản. Chuẩn hóa về dạng ROLE_* và kiểm tra hợp lệ.
+     */
+    public UserResponse updateUserRole(UUID id, String roleInput) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+
+        if (roleInput == null || roleInput.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vui lòng cung cấp quyền (role)");
+        }
+        String normalized = roleInput.trim().toUpperCase();
+        if (!normalized.startsWith("ROLE_")) {
+            normalized = "ROLE_" + normalized;
+        }
+        try {
+            RoleName roleEnum = RoleName.valueOf(normalized);
+            user.setRole(roleEnum.name());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quyền (role) không hợp lệ. Hợp lệ: ADMIN, RECEPTIONIST, STAFF, CUSTOMER");
+        }
+
+        return toResponse(userRepository.save(user));
+    }
+
+    /**
+     * Admin khóa/mở khóa một tài khoản (đảo trạng thái ACTIVE <-> BLOCKED).
+     */
+    public UserResponse toggleUserBlockStatus(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+
+        String newStatus = "BLOCKED".equalsIgnoreCase(user.getStatus()) ? "ACTIVE" : "BLOCKED";
+        user.setStatus(newStatus);
+        return toResponse(userRepository.save(user));
+    }
+
+    private UserResponse toResponse(User user) {
         UserResponse response = new UserResponse();
         response.setId(user.getId());
         response.setUsername(user.getUsername());
         response.setFullName(user.getFullName());
         response.setEmail(user.getEmail());
         response.setRole(user.getRole());
+        response.setStatus(user.getStatus());
         return response;
     }
 }

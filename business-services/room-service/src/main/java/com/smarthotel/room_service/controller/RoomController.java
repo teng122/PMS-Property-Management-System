@@ -60,9 +60,39 @@ public class RoomController {
         return ResponseEntity.ok(roomService.updateRoomStatus(id, request));
     }
 
+    /**
+     * Admin cập nhật thông tin chi tiết một phòng.
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RoomResponse> updateRoom(
+            @PathVariable("id") UUID id,
+            @RequestBody RoomCreateRequest request) {
+        return ResponseEntity.ok(roomService.updateRoom(id, request));
+    }
+
+    /**
+     * Admin xóa một phòng vật lý.
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteRoom(@PathVariable("id") UUID id) {
+        roomService.deleteRoom(id);
+        return ResponseEntity.ok("Đã xóa phòng có ID: " + id);
+    }
+
     // ==========================================
     // 3. TRA CỨU THÔNG TIN PHÒNG (ROOM QUERIES)
     // ==========================================
+
+    /**
+     * Lấy toàn bộ danh sách phòng vật lý (kể cả phòng đang bận) cho trang quản lý kho phòng của Admin.
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    public ResponseEntity<List<RoomResponse>> getAllRooms() {
+        return ResponseEntity.ok(roomService.getAllRooms());
+    }
 
     /**
      * Lấy thông tin chi tiết một phòng bằng ID phòng.

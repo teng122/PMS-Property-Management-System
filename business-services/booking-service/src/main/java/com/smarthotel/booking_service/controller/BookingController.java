@@ -104,6 +104,15 @@ public class BookingController {
     // ==========================================
 
     /**
+     * Khách hàng tự lấy danh sách đơn đặt phòng của mình (dựa trên X-User-Id trong token).
+     */
+    @GetMapping("/my-bookings")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<List<Booking>> getMyBookings(@RequestHeader("X-User-Id") UUID customerId) {
+        return ResponseEntity.ok(bookingService.getBookingsByCustomerId(customerId));
+    }
+
+    /**
      * Truy vấn thông tin chi tiết một đơn đặt phòng bằng ID.
      */
     @GetMapping("/{id}")

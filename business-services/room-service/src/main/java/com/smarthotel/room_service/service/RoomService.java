@@ -114,9 +114,56 @@ public class RoomService {
         return modelMapper.map(saved, RoomResponse.class);
     }
 
+    /**
+     * Admin cập nhật thông tin một phòng vật lý (số phòng, loại, giá, trạng thái).
+     */
+    @Transactional
+    public RoomResponse updateRoom(UUID id, RoomCreateRequest request) {
+        Room room = roomRepository.findByIdOrThrow(id);
+
+        if (request.getRoomNumber() != null) {
+            room.setRoomNumber(request.getRoomNumber());
+        }
+        if (request.getType() != null) {
+            room.setRoomType(request.getType().toUpperCase());
+        }
+        if (request.getPrice() != null) {
+            room.setBasePrice(request.getPrice());
+        }
+        if (request.getStatus() != null) {
+            try {
+                room.setStatus(RoomStatus.valueOf(request.getStatus().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                throw new InvalidRoomStatusException("Trạng thái phòng không hợp lệ: " + request.getStatus());
+            }
+        }
+
+        Room updated = roomRepository.save(room);
+        return modelMapper.map(updated, RoomResponse.class);
+    }
+
+    /**
+     * Admin xóa một phòng vật lý khỏi hệ thống.
+     */
+    @Transactional
+    public void deleteRoom(UUID id) {
+        Room room = roomRepository.findByIdOrThrow(id);
+        roomRepository.delete(room);
+    }
+
     // ==========================================
     // 3. TRA CỨU THÔNG TIN PHÒNG (ROOM QUERIES)
     // ==========================================
+
+    /**
+     * Lấy toàn bộ danh sách phòng vật lý (bao gồm cả phòng đang bận) cho trang quản lý kho phòng.
+     */
+    @Transactional(readOnly = true)
+    public List<RoomResponse> getAllRooms() {
+        return roomRepository.findAll().stream()
+                .map(room -> modelMapper.map(room, RoomResponse.class))
+                .collect(Collectors.toList());
+    }
 
     /**
      * Truy vấn thông tin chi tiết một phòng bằng ID phòng.
