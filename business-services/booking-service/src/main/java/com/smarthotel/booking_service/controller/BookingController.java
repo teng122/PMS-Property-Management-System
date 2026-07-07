@@ -35,7 +35,29 @@ public class BookingController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<BookingResponse> createOnlineBooking(@RequestBody BookingRequest bookingRequest) {
+    public ResponseEntity<BookingResponse> createOnlineBooking(
+            @RequestBody BookingRequest bookingRequest,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+
+        UUID authenticatedUserId = (userIdHeader != null && !userIdHeader.trim().isEmpty()) ? UUID.fromString(userIdHeader) : null;
+
+        // Nếu role là CUSTOMER, ép buộc bookingRequest.customerId = authenticatedUserId (không cho phép đặt phòng hộ/giả mạo người khác)
+        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
+            if (authenticatedUserId == null) {
+                throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu thông tin người dùng trong Token!");
+            }
+            bookingRequest.setCustomerId(authenticatedUserId);
+        } else {
+            // Với RECEPTIONIST/ADMIN: Nếu không truyền customerId thì mặc định lấy authenticatedUserId hoặc báo lỗi
+            if (bookingRequest.getCustomerId() == null) {
+                if (authenticatedUserId == null) {
+                    throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thông tin khách hàng (customerId) cho đơn đặt phòng!");
+                }
+                bookingRequest.setCustomerId(authenticatedUserId);
+            }
+        }
+
         Booking booking = bookingService.createOnlineBooking(bookingRequest);
         BookingResponse response = BookingResponse.builder()
                 .id(booking.getId())
