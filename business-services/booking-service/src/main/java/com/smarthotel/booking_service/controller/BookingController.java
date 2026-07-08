@@ -34,29 +34,16 @@ public class BookingController {
      * Trạng thái ban đầu sẽ là PENDING và chuyển sang CONFIRMED sau khi giữ phòng thành công.
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponse> createOnlineBooking(
             @RequestBody BookingRequest bookingRequest,
-            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
-            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+            @RequestHeader(value = "X-User-Id") String userIdHeader) {
 
-        UUID authenticatedUserId = (userIdHeader != null && !userIdHeader.trim().isEmpty()) ? UUID.fromString(userIdHeader) : null;
-
-        // Nếu role là CUSTOMER, ép buộc bookingRequest.customerId = authenticatedUserId (không cho phép đặt phòng hộ/giả mạo người khác)
-        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
-            if (authenticatedUserId == null) {
-                throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu thông tin người dùng trong Token!");
-            }
-            bookingRequest.setCustomerId(authenticatedUserId);
-        } else {
-            // Với RECEPTIONIST/ADMIN: Nếu không truyền customerId thì mặc định lấy authenticatedUserId hoặc báo lỗi
-            if (bookingRequest.getCustomerId() == null) {
-                if (authenticatedUserId == null) {
-                    throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thông tin khách hàng (customerId) cho đơn đặt phòng!");
-                }
-                bookingRequest.setCustomerId(authenticatedUserId);
-            }
+        if (userIdHeader == null || userIdHeader.trim().isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu thông tin người dùng trong Token!");
         }
+        UUID authenticatedUserId = UUID.fromString(userIdHeader);
+        bookingRequest.setCustomerId(authenticatedUserId);
 
         Booking booking = bookingService.createOnlineBooking(bookingRequest);
         BookingResponse response = BookingResponse.builder()
@@ -129,7 +116,7 @@ public class BookingController {
      * Khách hàng tự lấy danh sách đơn đặt phòng của mình (dựa trên X-User-Id trong token).
      */
     @GetMapping("/my-bookings")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<List<Booking>> getMyBookings(@RequestHeader("X-User-Id") UUID customerId) {
         return ResponseEntity.ok(bookingService.getBookingsByCustomerId(customerId));
     }
@@ -139,8 +126,21 @@ public class BookingController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(bookingService.getBookingById(id));
+    public ResponseEntity<Booking> findById(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+        Booking booking = bookingService.getBookingById(id);
+
+        // Kiểm tra quyền sở hữu đơn hàng đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
+        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
+            if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập thông tin đơn đặt phòng này!"
+                );
+            }
+        }
+        return ResponseEntity.ok(booking);
     }
 
     /**
@@ -179,6 +179,35 @@ public class BookingController {
         return ResponseEntity.ok(activeRoomIds);
     }
 
+    @GetMapping("/search-available-rooms")
+    public ResponseEntity<List<com.smarthotel.booking_service.dto.external.RoomDto>> searchAvailableRooms(
+            @RequestParam("checkIn") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
+            @RequestParam("checkOut") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut) {
+        return ResponseEntity.ok(bookingService.searchAvailableRooms(checkIn, checkOut));
+    }
+
+    @GetMapping("/active/room/{roomId}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
+    public ResponseEntity<Booking> getActiveBookingByRoomId(
+            @PathVariable("roomId") UUID roomId,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+        Booking booking = bookingService.getActiveBookingByRoomId(roomId);
+        if (booking == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Kiểm tra quyền sở hữu đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
+        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
+            if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập thông tin đặt phòng của phòng này!"
+                );
+            }
+        }
+        return ResponseEntity.ok(booking);
+    }
+
     @GetMapping("/check-availability")
     public ResponseEntity<Boolean> checkAvailability(
             @RequestParam("roomId") UUID roomId,
@@ -192,7 +221,19 @@ public class BookingController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<Booking> payDeposit(
             @PathVariable("id") UUID id,
-            @RequestParam("amount") java.math.BigDecimal amount) {
+            @RequestParam("amount") java.math.BigDecimal amount,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+        Booking booking = bookingService.getBookingById(id);
+
+        // Kiểm tra quyền sở hữu đơn hàng đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
+        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
+            if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Bạn không có quyền thanh toán đặt cọc cho đơn đặt phòng này!"
+                );
+            }
+        }
         return ResponseEntity.ok(bookingService.payDeposit(id, amount));
     }
 

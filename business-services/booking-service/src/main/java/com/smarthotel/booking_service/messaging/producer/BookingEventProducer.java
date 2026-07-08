@@ -3,7 +3,6 @@ package com.smarthotel.booking_service.messaging.producer;
 import com.smarthotel.booking_service.messaging.BookingEventPublisher;
 import com.smarthotel.common_shared.event.BookingCreatedEvent;
 import com.smarthotel.common_shared.event.CheckoutStartedEvent;
-import com.smarthotel.common_shared.event.AmenityOrderValidatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -34,17 +33,6 @@ public class BookingEventProducer implements BookingEventPublisher {
 
         log.info("[Kafka Producer] Bắn event CheckoutStartedEvent | BookingId: {} | RoomId: {} | Key: {}",
                 event.getBookingId(), event.getRoomId(), partitionKey);
-
-        this.kafkaTemplate.send(topic, partitionKey, event);
-    }
-
-    @Override
-    public void publishAmenityOrderValidated(AmenityOrderValidatedEvent event) {
-        String topic = "booking-validation-events";
-        String partitionKey = event.getOrderId().toString();
-
-        log.info("[Kafka Producer] Bắn event AmenityOrderValidatedEvent | OrderId: {} | isValid: {} | Key: {}",
-                event.getOrderId(), event.isValid(), partitionKey);
 
         this.kafkaTemplate.send(topic, partitionKey, event);
     }

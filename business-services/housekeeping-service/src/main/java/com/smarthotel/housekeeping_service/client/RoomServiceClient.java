@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@FeignClient(name = "room-service")
+@FeignClient(name = "room-service", fallback = com.smarthotel.housekeeping_service.client.fallback.RoomServiceClientFallback.class)
 public interface RoomServiceClient {
 
     @PutMapping("/api/rooms/{id}/status")

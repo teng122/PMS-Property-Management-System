@@ -1,12 +1,10 @@
 package com.smarthotel.billing_service.controller;
 
 import com.smarthotel.billing_service.entity.Invoice;
-import com.smarthotel.billing_service.dto.GenerateRequest;
 import com.smarthotel.billing_service.dto.InvoiceResponse;
 import com.smarthotel.billing_service.dto.PaymentInitResponse;
 import com.smarthotel.billing_service.dto.RevenueStatsResponse;
 import com.smarthotel.billing_service.service.InvoiceService;
-import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,17 +27,7 @@ public class InvoiceController {
         this.service = service;
     }
 
-    // ==========================================
-    // 1. TẠO HÓA ĐƠN (INVOICE GENERATION)
-    // ==========================================
 
-    /**
-     * Tạo hóa đơn tính tiền cho khách dựa trên đơn đặt phòng và các dịch vụ phòng đi kèm chưa thanh toán.
-     */
-    @PostMapping("/generate")
-    public ResponseEntity<InvoiceResponse> generate(@Valid @RequestBody GenerateRequest req) {
-        return ResponseEntity.ok(service.generate(req.bookingId()));
-    }
 
     // ==========================================
     // 2. QUY TRÌNH THANH TOÁN (PAYMENT FLOW)

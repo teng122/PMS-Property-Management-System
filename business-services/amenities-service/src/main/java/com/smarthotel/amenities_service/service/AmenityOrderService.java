@@ -5,6 +5,8 @@ import com.smarthotel.amenities_service.dto.response.AmenityOrderResponse;
 import com.smarthotel.amenities_service.entity.Amenity;
 import com.smarthotel.amenities_service.entity.AmenityOrder;
 import com.smarthotel.amenities_service.exception.ResourceNotFoundException;
+import com.smarthotel.amenities_service.client.BookingClient;
+import com.smarthotel.amenities_service.dto.external.BookingDto;
 import com.smarthotel.amenities_service.repository.AmenityOrderRepository;
 import com.smarthotel.amenities_service.repository.AmenityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,9 @@ public class AmenityOrderService {
     @Autowired
     private com.smarthotel.amenities_service.messaging.producer.AmenityOrderEventProducer amenityOrderEventProducer;
 
+    @Autowired
+    private BookingClient bookingClient;
+
     // ==========================================
     // 1. GỌI DỊCH VỤ PHÒNG (ORDER LIFECYCLE)
     // ==========================================
@@ -40,13 +45,35 @@ public class AmenityOrderService {
      * Tính toán tổng tiền dựa trên đơn giá danh mục và đặt trạng thái ban đầu là PENDING.
      */
     @Transactional
-    public AmenityOrderResponse createOrder(AmenityOrderCreateRequest request) {
+    public AmenityOrderResponse createOrder(
+            AmenityOrderCreateRequest request,
+            String userIdHeader,
+            String userRoleHeader) {
+        // Gọi đồng bộ kiểm tra trạng thái phòng đã CHECKED_IN
+        BookingDto booking = bookingClient.getActiveBookingByRoomId(request.getRoomId());
+        if (booking == null || !"CHECKED_IN".equalsIgnoreCase(booking.getStatus())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Phòng này chưa được nhận (CHECKED_IN), không thể gọi dịch vụ!"
+            );
+        }
+
+        // Kiểm tra quyền sở hữu đối với vai trò CUSTOMER (chống gọi dịch vụ hộ phòng khác)
+        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
+            if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN,
+                        "Bạn không có quyền gọi dịch vụ cho phòng này!"
+                );
+            }
+        }
+
         Amenity amenity = amenityRepository.findByIdOrThrow(request.getAmenityId());
 
         AmenityOrder order = new AmenityOrder();
         order.setRoomId(request.getRoomId());
-        order.setBookingId(request.getBookingId());
-        order.setStatus(com.smarthotel.amenities_service.entity.AmenityOrderStatus.PENDING);
+        order.setBookingId(booking.getId()); // Gán bookingId tự động truy vấn từ Room ID
+        order.setStatus(com.smarthotel.amenities_service.entity.AmenityOrderStatus.PREPARING); // Vào trực tiếp trạng thái PREPARING
 
         java.math.BigDecimal price = amenity.getPrice();
         java.math.BigDecimal totalPrice = price.multiply(java.math.BigDecimal.valueOf(request.getQuantity()));
@@ -63,17 +90,6 @@ public class AmenityOrderService {
         order.getDetails().add(detail);
 
         AmenityOrder saved = amenityOrderRepository.save(order);
-
-        // Bắn event AmenityOrderCreatedEvent sang Kafka
-        com.smarthotel.common_shared.event.AmenityOrderCreatedEvent event = com.smarthotel.common_shared.event.AmenityOrderCreatedEvent.builder()
-                .eventId(UUID.randomUUID())
-                .orderId(saved.getId())
-                .bookingId(saved.getBookingId())
-                .roomId(saved.getRoomId())
-                .totalPrice(saved.getTotalPrice())
-                .timestamp(java.time.LocalDateTime.now())
-                .build();
-        amenityOrderEventProducer.publishOrderCreated(event);
 
         return mapToResponse(saved);
     }

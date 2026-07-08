@@ -22,6 +22,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findByCustomerId(UUID customerId);
 
+    java.util.Optional<Booking> findByRoomIdAndStatus(UUID roomId, BookingStatus status);
+
     @Query("SELECT DISTINCT b.roomId FROM Booking b " +
            "WHERE b.status NOT IN (com.smarthotel.booking_service.entity.BookingStatus.CANCELLED, com.smarthotel.booking_service.entity.BookingStatus.NO_SHOW) " +
            "AND b.checkOutDate > :start AND b.checkInDate < :end")

@@ -7,8 +7,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import com.smarthotel.booking_service.client.fallback.RoomClientFallback;
+import java.util.List;
+
 // 'name' phải trùng chính xác với 'spring.application.name' của room-service trên Eureka
-@FeignClient(name = "room-service") 
+@FeignClient(name = "room-service", fallback = RoomClientFallback.class) 
 public interface RoomClient {
 
     // Cấu hình đường dẫn API y hệt như bên RoomController của room-service
@@ -17,4 +20,7 @@ public interface RoomClient {
 
     @PutMapping("/api/rooms/{id}/status")
     void updateRoomStatus(@PathVariable("id") UUID id, @RequestBody RoomStatusUpdateRequest request);
+
+    @GetMapping("/api/rooms/all")
+    List<RoomDto> getAllRooms();
 }

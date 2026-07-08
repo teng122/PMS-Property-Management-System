@@ -1,6 +1,6 @@
 package com.smarthotel.room_service.service;
 
-import com.smarthotel.room_service.client.BookingClient;
+
 import com.smarthotel.room_service.dto.request.RoomCreateRequest;
 import com.smarthotel.room_service.dto.request.RoomStatusUpdateRequest;
 import com.smarthotel.room_service.dto.response.RoomResponse;
@@ -32,40 +32,7 @@ public class RoomService {
     @Autowired
     private ModelMapper modelMapper;
 
-    @Autowired
-    private BookingClient bookingClient;
 
-    // ==========================================
-    // 1. TÌM KIẾM PHÒNG (ROOM SEARCH)
-    // ==========================================
-
-    /**
-     * Tìm phòng trống dựa trên khoảng thời gian nhận phòng và trả phòng.
-     * Liên lạc Feign với Booking Service để lọc bỏ các phòng đang bận.
-     */
-    public List<RoomResponse> searchAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
-        if (checkIn == null || checkOut == null) {
-            throw new IllegalArgumentException("Ngày nhận phòng và trả phòng không được để trống!");
-        }
-        if (checkIn.isAfter(checkOut)) {
-            throw new IllegalArgumentException("Ngày trả phòng (check-out) phải ở sau ngày nhận phòng (check-in)!");
-        }
-
-        // 1. Gọi sang booking-service để lấy danh sách Room ID bận trong thời gian này
-        List<UUID> activeRoomIds = bookingClient.getActiveRoomIds(checkIn, checkOut);
-
-        // 2. Lấy toàn bộ phòng vật lý trong database
-        List<Room> allRooms = roomRepository.findAll();
-
-        // 3. Lọc bỏ các phòng nằm trong danh sách bận
-        List<Room> availableRooms = allRooms.stream()
-                .filter(room -> !activeRoomIds.contains(room.getId()))
-                .collect(Collectors.toList());
-
-        return availableRooms.stream()
-                .map(room -> modelMapper.map(room, RoomResponse.class))
-                .collect(Collectors.toList());
-    }
 
     // ==========================================
     // 2. CẬP NHẬT TRẠNG THÁI PHÒNG (ROOM OPERATIONS)

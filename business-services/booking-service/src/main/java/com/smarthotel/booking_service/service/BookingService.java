@@ -1,10 +1,7 @@
 package com.smarthotel.booking_service.service;
 
 import com.smarthotel.booking_service.client.RoomClient;
-import com.smarthotel.booking_service.client.IdentityClient;
-import com.smarthotel.booking_service.client.BillingClient;
 import com.smarthotel.booking_service.dto.external.RoomDto;
-import com.smarthotel.booking_service.dto.external.UserDto;
 import com.smarthotel.booking_service.dto.external.InvoiceDto;
 import com.smarthotel.booking_service.dto.external.RoomStatusUpdateRequest;
 import com.smarthotel.booking_service.dto.request.BookingRequest;
@@ -39,8 +36,6 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RoomClient roomClient;
     private final BookingEventPublisher bookingEventPublisher;
-    private final IdentityClient identityClient;
-    private final BillingClient billingClient;
 
     @Autowired
     @org.springframework.context.annotation.Lazy
@@ -56,6 +51,20 @@ public class BookingService {
      */
     @Transactional
     public Booking createOnlineBooking(BookingRequest bookingRequest) {
+        // Kiểm tra trùng lịch đặt phòng cục bộ ngay lập tức (Fail-Fast)
+        boolean isAvailable = checkAvailability(
+                bookingRequest.getRoomId(),
+                null,
+                bookingRequest.getCheckInDate().atTime(14, 0),
+                bookingRequest.getCheckOutDate().atTime(12, 0)
+        );
+        if (!isAvailable) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Phòng đã có khách khác đặt trùng lịch từ trước!"
+            );
+        }
+
         RoomDto room = roomClient.getRoomById(bookingRequest.getRoomId());
         if (room == null) {
             throw new BookingNotFoundException("Không tìm thấy thông tin phòng với ID: " + bookingRequest.getRoomId());
@@ -153,25 +162,10 @@ public class BookingService {
             throw new InvalidBookingStatusException("Đơn đặt phòng này không ở trạng thái hợp lệ để Check-in!");
         }
 
-        UserDto customer = identityClient.getUserById(booking.getCustomerId());
-        if (customer == null) {
-            throw new BookingNotFoundException("Không tìm thấy thông tin khách hàng từ Identity Service!");
-        }
-
-        RoomDto room = roomClient.getRoomById(booking.getRoomId());
-        if (room == null) {
-            throw new BookingNotFoundException("Không tìm thấy thông tin phòng từ Room Service!");
-        }
-
-        boolean isReservedByUs = RoomStatus.OCCUPIED.name().equalsIgnoreCase(room.getStatus()) && bookingId.equals(room.getReservedBookingId());
-        if (!isReservedByUs && !RoomStatus.AVAILABLE.name().equalsIgnoreCase(room.getStatus())) {
-            throw new InvalidRoomStatusException("Phòng số " + room.getRoomNumber() + " hiện tại không thể check-in!");
-        }
-
         // Cập nhật Database cục bộ thông qua proxy transactional cực ngắn
         Booking savedBooking = self.executeUpdateCheckIn(bookingId);
 
-        // Cập nhật trạng thái phòng qua Feign ngoài transaction
+        // Cập nhật trạng thái phòng qua Feign ngoài transaction (không giữ connection DB)
         try {
             roomClient.updateRoomStatus(booking.getRoomId(), new RoomStatusUpdateRequest(RoomStatus.OCCUPIED.name()));
         } catch (Exception e) {
@@ -219,26 +213,14 @@ public class BookingService {
         RoomDto room = roomClient.getRoomById(booking.getRoomId());
         String roomNumber = (room != null) ? room.getRoomNumber() : "N/A";
 
-        UserDto customer = identityClient.getUserById(booking.getCustomerId());
-        String customerName = (customer != null) ? customer.getFullName() : "N/A";
-
-        InvoiceDto invoice = null;
-        String paymentStatus = "NO_INVOICE";
-        try {
-            invoice = billingClient.getInvoiceByBookingId(bookingId);
-            if (invoice != null) {
-                paymentStatus = invoice.getStatus();
-            }
-        } catch (Exception e) {
-            // Không có hóa đơn được tạo sẵn hoặc kết nối bị gián đoạn, mặc định là NO_INVOICE
-        }
+        String customerName = "Khách hàng #" + booking.getCustomerId().toString().substring(0, 8); // Tinh gọn không gọi identity-service
 
         return PreCheckoutSummaryResponse.builder()
                 .bookingId(bookingId)
                 .customerName(customerName)
                 .roomNumber(roomNumber)
-                .invoice(invoice)
-                .paymentStatus(paymentStatus)
+                .invoice(null) // Lược bỏ Feign client gọi billing-service chéo
+                .paymentStatus("PENDING_CHECKOUT")
                 .build();
     }
 
@@ -277,6 +259,7 @@ public class BookingService {
                     .roomId(updatedBooking.getRoomId())
                     .customerId(updatedBooking.getCustomerId())
                     .roomCharge(roomCharge)
+                    .depositAmount(updatedBooking.getDepositAmount()) // Bổ sung depositAmount vào Event
                     .timestamp(LocalDateTime.now())
                     .build();
             bookingEventPublisher.publishCheckoutStarted(event);
@@ -371,6 +354,33 @@ public class BookingService {
         LocalDateTime start = checkIn.atTime(14, 0);
         LocalDateTime end = checkOut.atTime(12, 0);
         return bookingRepository.findActiveRoomIds(start, end);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RoomDto> searchAvailableRooms(LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null) {
+            throw new IllegalArgumentException("Ngày nhận phòng và trả phòng không được để trống!");
+        }
+        if (checkIn.isAfter(checkOut)) {
+            throw new IllegalArgumentException("Ngày trả phòng (check-out) phải ở sau ngày nhận phòng (check-in)!");
+        }
+
+        // Lấy danh sách ID phòng bận cục bộ
+        List<UUID> activeRoomIds = getActiveRoomIds(checkIn, checkOut);
+
+        // Lấy toàn bộ phòng vật lý từ Room Service (Feign call ngoài transaction)
+        List<RoomDto> allRooms = roomClient.getAllRooms();
+
+        // Lọc các phòng chưa bận
+        return allRooms.stream()
+                .filter(room -> !activeRoomIds.contains(room.getId()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Booking getActiveBookingByRoomId(UUID roomId) {
+        return bookingRepository.findByRoomIdAndStatus(roomId, BookingStatus.CHECKED_IN)
+                .orElse(null);
     }
 
     @Transactional

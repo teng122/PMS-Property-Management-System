@@ -34,7 +34,19 @@ public class AuthController {
     }
 
     @GetMapping("/users/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable("id") java.util.UUID id) {
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable("id") java.util.UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+        
+        // Kiểm tra quyền sở hữu đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
+        if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
+            if (userIdHeader == null || !id.toString().equalsIgnoreCase(userIdHeader)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.FORBIDDEN, "Bạn không có quyền truy cập thông tin tài khoản này!"
+                );
+            }
+        }
         return ResponseEntity.ok(authService.getUserById(id));
     }
 }

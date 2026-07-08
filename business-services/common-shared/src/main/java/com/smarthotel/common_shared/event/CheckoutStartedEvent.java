@@ -19,5 +19,6 @@ public class CheckoutStartedEvent {
     private UUID roomId;
     private UUID customerId;
     private BigDecimal roomCharge;
+    private BigDecimal depositAmount;
     private LocalDateTime timestamp;
 }

@@ -39,24 +39,6 @@ class InvoiceControllerTest {
     }
 
     @Test
-    void generate_tra200_vaJsonDung() throws Exception {
-        UUID id = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
-        when(service.generate(any(UUID.class)))
-                .thenReturn(sampleInvoice(id, bookingId, "UNPAID"));
-
-        mockMvc.perform(post("/api/invoices/generate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"bookingId\":\"" + bookingId + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roomCharge").value(1500000))
-                .andExpect(jsonPath("$.serviceCharge").value(75000))
-                .andExpect(jsonPath("$.tax").value(157500))
-                .andExpect(jsonPath("$.totalAmount").value(1732500))
-                .andExpect(jsonPath("$.status").value("UNPAID"));
-    }
-
-    @Test
     void pay_tra200_vaQrChuaVietQr() throws Exception {
         UUID id = UUID.randomUUID();
         String qr = "https://img.vietqr.io/image/970415-113366668888-compact2.png?amount=1732500&addInfo=INV" + id;
@@ -79,18 +61,4 @@ class InvoiceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PAID"));
     }
-
-    @Test
-    void generate_khiServiceNemIllegalState_tra409() throws Exception {
-        when(service.generate(any(UUID.class)))
-                .thenThrow(new IllegalStateException("Hoa don cho booking nay da ton tai"));
-
-        mockMvc.perform(post("/api/invoices/generate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"bookingId\":\"" + UUID.randomUUID() + "\"}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("CONFLICT"));
-    }
 }
-
-

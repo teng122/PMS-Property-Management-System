@@ -31,8 +31,11 @@ public class AmenityOrderController {
      */
     @PostMapping("/order")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<AmenityOrderResponse> createOrder(@RequestBody AmenityOrderCreateRequest request) {
-        return ResponseEntity.ok(amenityOrderService.createOrder(request));
+    public ResponseEntity<AmenityOrderResponse> createOrder(
+            @RequestBody AmenityOrderCreateRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
+        return ResponseEntity.ok(amenityOrderService.createOrder(request, userIdHeader, userRoleHeader));
     }
 
     /**
@@ -89,6 +92,7 @@ public class AmenityOrderController {
      * Lấy tổng tiền dịch vụ phòng chưa trả cho một đơn đặt phòng (gọi chéo từ Billing Service).
      */
     @GetMapping("/orders/booking/{bookingId}/unpaid-charge")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
     public ResponseEntity<java.math.BigDecimal> getUnpaidChargeByBookingId(@PathVariable("bookingId") UUID bookingId) {
         return ResponseEntity.ok(amenityOrderService.getUnpaidChargeByBookingId(bookingId));
     }

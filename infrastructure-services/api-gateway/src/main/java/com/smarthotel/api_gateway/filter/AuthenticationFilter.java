@@ -119,6 +119,7 @@ public class AuthenticationFilter implements Filter {
             this.customHeaders.put(name, value);
         }
 
+//      Đọc giá trị của 1 header cụ thể
         @Override
         public String getHeader(String name) {
             String headerValue = customHeaders.get(name);
@@ -128,6 +129,7 @@ public class AuthenticationFilter implements Filter {
             return super.getHeader(name);
         }
 
+//      tất cả header hiện có.
         @Override
         public Enumeration<String> getHeaderNames() {
             Set<String> set = new HashSet<>(customHeaders.keySet());

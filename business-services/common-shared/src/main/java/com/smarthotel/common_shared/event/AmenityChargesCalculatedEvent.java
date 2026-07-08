@@ -13,11 +13,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AmenityOrderCreatedEvent {
+public class AmenityChargesCalculatedEvent {
     private UUID eventId;
-    private UUID orderId;
     private UUID bookingId;
     private UUID roomId;
-    private BigDecimal totalPrice;
+    private UUID customerId;
+    private BigDecimal roomCharge;
+    private BigDecimal depositAmount;
+    private BigDecimal serviceCharge;
     private LocalDateTime timestamp;
 }

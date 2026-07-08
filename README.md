@@ -1,12 +1,14 @@
 # Smart Hotel PMS (Property Management System)
 
-Hệ thống Quản lý Khách sạn Thông minh (Smart Hotel PMS) là một hệ sinh thái microservices xây dựng trên nền tảng **Java 17**, **Spring Boot 3.2.3** và **Spring Cloud 2023.0.0**. Hệ thống hỗ trợ tự động hóa toàn bộ quy trình vận hành khách sạn từ đặt phòng, quản lý buồng phòng, dịch vụ phòng, cho đến tính tiền và xuất hóa đơn.
+Hệ thống Quản lý Khách sạn Thông minh (Smart Hotel PMS) là một hệ sinh thái microservices xây dựng trên nền tảng **Java 17**, **Spring Boot 3.2.3** và **Spring Cloud 2023.0.0**. Hệ thống tự động hóa toàn bộ quy trình vận hành khách sạn từ tìm kiếm, đặt phòng trực tuyến, quản lý buồng phòng, gọi dịch vụ phòng, cho đến tự động hóa hóa đơn và thanh toán.
 
 ---
 
 ## 1. Kiến Trúc Hệ Thống (Architecture Overview)
 
-Hệ thống được thiết kế theo mô hình **Microservices Kiến trúc phân tán** kết hợp cơ chế giao tiếp đồng bộ (REST Feign Client) và bất đồng bộ (Kafka Event-driven) để đạt hiệu năng và khả năng chịu tải tốt nhất.
+Hệ thống được thiết kế theo mô hình **Microservices Kiến trúc phân tán** sử dụng luồng **Choreography Saga thuần túy** (dựa hoàn toàn trên sự kiện Apache Kafka) để phối hợp các tác vụ giao dịch phân tán (Đặt phòng, Trả phòng, Gộp hóa đơn tiện ích và Tính tiền). 
+
+Cơ chế giao tiếp đồng bộ (REST Feign Client) được tối giản hóa và chỉ sử dụng cho các truy vấn tra cứu thông tin (Read-only lookup) hoặc cập nhật trực tiếp trạng thái phòng vật lý, đồng thời được bảo vệ bởi **Resilience4j Circuit Breakers** & **Timeouts** được cấu hình tập trung cùng cơ chế **Fallback** an toàn.
 
 ```mermaid
 graph TD
@@ -48,7 +50,8 @@ graph TD
 * **Quản lý cấu hình tập trung**: Spring Cloud Config Server (lưu trữ tệp YAML)
 * **Cơ sở dữ liệu**: PostgreSQL 15 (Mỗi service sở hữu một DB độc lập - Database-per-Service)
 * **Cơ chế Cache**: Redis Cache (dùng cho Token Blacklist và tăng tốc truy vấn)
-* **Truyền tin & Điều phối**: Apache Kafka (quản lý luồng Sự kiện/Saga Orchestration)
+* **Truyền tin & Điều phối**: Apache Kafka (Kiến trúc Choreography Saga thuần túy qua các Event topics)
+* **Tự chịu lỗi & Kháng lỗi**: Resilience4j (Circuit Breaker & Timeouts: Connect Timeout 2s, Read Timeout 5s)
 * **Công cụ build**: Maven
 
 ---
@@ -62,6 +65,7 @@ smart-hotel-pms/                  # Thư mục gốc dự án
 ├── pom.xml                       # POM cha quản lý dependency & plugin
 ├── docker-compose.yml            # Khởi tạo hạ tầng DB, Kafka, Redis cục bộ
 ├── README.md                     # Tài liệu hướng dẫn dự án
+├── SYSTEM_LOGIC_OPERATIONS.md    # Tài liệu đặc tả luồng xử lý và sự kiện
 │
 ├── infrastructure-services/      # Các dịch vụ hạ tầng hệ thống
 │   ├── config-server/            # Centralized Configuration (Port 8888)
@@ -85,31 +89,37 @@ smart-hotel-pms/                  # Thư mục gốc dự án
 
 ### 4.1. Identity Service (Cổng 8086)
 * **Nhiệm vụ**: Xác thực người dùng (Đăng ký, Đăng nhập), quản lý phân quyền (Admin, Receptionist, Housekeeper, Customer).
-* **Bảo mật**: Sử dụng cơ chế Token Rotation (Access Token thời gian ngắn & Refresh Token luân phiên). Tích hợp Redis để lưu trữ danh sách Token bị thu hồi (Blacklist) nhằm ngăn chặn Session Hijacking.
 * **Cơ sở dữ liệu**: `hotel_identity_db` (Port: `5431`).
 
 ### 4.2. Room Service (Cổng 8081)
-* **Nhiệm vụ**: Quản lý danh mục loại phòng, số lượng phòng vật lý, cập nhật trạng thái phòng (AVAILABLE, BOOKED, DIRTY, CLEANING).
+* **Nhiệm vụ**: Quản lý danh mục loại phòng, số lượng phòng vật lý, cập nhật trạng thái phòng.
+* **Saga**: Lắng nghe `BookingCreatedEvent` từ Kafka, kiểm tra tình trạng bảo trì vật lý của phòng để bắn `RoomReservedEvent` (giữ phòng thành công) hoặc `RoomReservationFailedEvent` (thất bại).
 * **Cơ sở dữ liệu**: `hotel_room_db` (Port: `5436`).
 
 ### 4.3. Booking Service (Cổng 8082)
-* **Nhiệm vụ**: Xử lý toàn bộ vòng đời đặt phòng. Hỗ trợ tính năng tính toán giá trị đặt phòng trước, đặt trước phòng, thực hiện Check-in và Check-out.
-* **Tích hợp**: Gọi Feign Client sang `room-service` để kiểm tra trạng thái phòng và gọi `billing-service` để tự động hóa quy trình Check-out và thanh toán.
+* **Nhiệm vụ**: Xử lý toàn bộ vòng đời đặt phòng.
+  * **Đặt phòng trực tuyến**: Chỉ dành cho vai trò `CUSTOMER`. Hệ thống kiểm tra trùng lịch đặt phòng cục bộ tức thì (**Fail-Fast**), tạo đơn `PENDING` và bắn sự kiện `BookingCreatedEvent`.
+  * **Check-in trực tiếp**: Nhận phòng bằng cách xác nhận đơn đặt phòng `CONFIRMED`, cập nhật cục bộ sang `CHECKED_IN` và gọi đồng bộ cập nhật trạng thái phòng vật lý sang `OCCUPIED` (Feign Client được cấu hình Resilience4j Fallback).
+  * **Tìm kiếm phòng trống**: Expose API `GET /api/bookings/search-available-rooms` bằng cách đối chiếu phòng vật lý từ Room Service với lịch bận tại local DB.
+  * **Check-out**: Cập nhật trạng thái booking sang `CHECKED_OUT` và phát sự kiện `CheckoutStartedEvent` chứa `roomCharge` (tiền phòng thực tế) và `depositAmount` (tiền cọc).
 * **Cơ sở dữ liệu**: `hotel_booking_db` (Port: `5432`).
 
 ### 4.4. Amenities Service (Cổng 8083)
-* **Nhiệm vụ**: Quản lý danh sách dịch vụ gia tăng (Spa, Buffet, Bar, Giặt là). Ghi nhận các yêu cầu đặt dịch vụ từ phòng của khách (Amenity Orders).
+* **Nhiệm vụ**: Gọi đồ ăn uống/dịch vụ tại phòng.
+  * **Quy tắc nghiêm ngặt**: Khách hàng chỉ được phép đặt dịch vụ phòng khi phòng ở trạng thái nhận phòng (`CHECKED_IN`).
+  * **Gọi đồ**: Hệ thống gọi Feign Client đồng bộ sang `booking-service` (`GET /api/bookings/active/room/{roomId}`) để xác thực trạng thái phòng và tự động lấy `bookingId`. Đơn hàng được lưu thẳng sang trạng thái `PREPARING` (không cần SAGA xác thực không đồng bộ).
+  * **Thanh toán dịch vụ khi Checkout**: Lắng nghe sự kiện `CheckoutStartedEvent`, tìm các đơn hàng dịch vụ chưa thanh toán của phòng, chuyển sang trạng thái `BILLED`, cộng tổng số tiền dịch vụ (`serviceCharge`) và phát sự kiện `AmenityChargesCalculatedEvent` lên Kafka.
 * **Cơ sở dữ liệu**: `hotel_amenities_db` (Port: `5433`).
 
 ### 4.5. Housekeeping Service (Cổng 8084)
-* **Nhiệm vụ**: Tự động tạo tác vụ dọn dẹp khi phòng được trả (Check-out) hoặc khách có yêu cầu. Hỗ trợ cập nhật tiến độ công việc dọn dẹp của nhân viên.
-* **Giao tiếp**: Lắng nghe sự kiện Check-out qua Kafka để chuyển trạng thái phòng thành `DIRTY` và phân công tác vụ dọn dẹp.
+* **Nhiệm vụ**: Tự động tạo tác vụ dọn dẹp khi phòng được trả (Check-out) hoặc khách có yêu cầu.
 * **Cơ sở dữ liệu**: `hotel_housekeeping_db` (Port: `5434`).
 
 ### 4.6. Billing Service (Cổng 8085)
-* **Nhiệm vụ**: Tổng hợp tiền phòng thực tế ở kèm chi phí dịch vụ gia tăng đã sử dụng trong suốt kỳ nghỉ của khách để xuất hóa đơn tổng.
-* **Thanh toán**: Sinh mã VietQR động dựa trên số tiền hóa đơn. Xác thực thanh toán thông qua API mô phỏng ngân hàng.
-* **Cơ sở dữ liệu**: `hotel_billing_db` (Port: `5435`) sử dụng Flyway để kiểm soát phiên bản database schema migration.
+* **Nhiệm vụ**: Tổng hợp hóa đơn tổng (không còn API generate thủ công).
+  * **Saga**: Lắng nghe sự kiện `AmenityChargesCalculatedEvent`, trích xuất `roomCharge`, `serviceCharge` và `depositAmount`.
+  * **Tính toán**: Áp dụng công thức `Tổng tiền = (Tiền phòng + Tiền dịch vụ) * 1.1 (Thuế VAT 10%) - Tiền đặt cọc`. Hóa đơn được tạo tự động dưới trạng thái `UNPAID` trong Database.
+* **Cơ sở dữ liệu**: `hotel_billing_db` (Port: `5435`).
 
 ---
 
@@ -142,18 +152,17 @@ Chạy lệnh sau tại thư mục gốc chứa file `docker-compose.yml`:
 ```bash
 docker compose up -d
 ```
-Đợi khoảng 1-2 phút để các container khởi động hoàn tất và kiểm tra trạng thái hoạt động của các DB.
 
 #### Bước 2: Build dự án bằng Maven
-Chạy lệnh biên dịch và cài đặt các thư viện phụ thuộc (bao gồm `common-shared`):
+Chạy lệnh biên dịch và cài đặt các thư viện phụ thuộc:
 ```bash
 mvn clean install -DskipTests
 ```
 
 #### Bước 3: Khởi chạy các Dịch vụ Hạ tầng hệ thống (Bắt buộc theo thứ tự)
-1. Khởi chạy **Config Server** (`ConfigServerApplication.java`): Cung cấp cấu hình YAML tập trung cho hệ thống.
-2. Khởi chạy **Eureka Server** (`EurekaServerApplication.java`): Service Discovery giúp các microservices tìm thấy nhau.
-3. Khởi chạy **API Gateway** (`ApiGatewayApplication.java`): Định tuyến cuộc gọi API từ client và kiểm soát Token bảo mật.
+1. Khởi chạy **Config Server** (`ConfigServerApplication.java`).
+2. Khởi chạy **Eureka Server** (`EurekaServerApplication.java`).
+3. Khởi chạy **API Gateway** (`ApiGatewayApplication.java`).
 
 #### Bước 4: Khởi chạy các Dịch vụ Nghiệp vụ
 Khởi chạy lần lượt các ứng dụng Spring Boot chính:
@@ -168,7 +177,7 @@ Khởi chạy lần lượt các ứng dụng Spring Boot chính:
 
 ## 7. Tiêu Chuẩn Thiết Kế Mã Nguồn (Code Standards)
 
-* **Kiến trúc Layered**: Các microservices đều phân chia package chuẩn bao gồm `controller`, `service`, `repository`, `entity`, `dto`, `client` (Feign client) và `messaging` (Kafka).
-* **Centralized Configuration**: Tuyệt đối không khai báo cấu hình nhạy cảm (Credentials, Ports, Hosts) cục bộ. Tất cả cấu hình đều được tải động từ Config Server.
-* **DTO Mapping**: Sử dụng `ModelMapper` hoặc cấu trúc Java `record` thuần túy để chuyển đổi dữ liệu an toàn giữa các lớp Entity và DTO.
-* **Global Exception Handler**: Tất cả các lỗi nghiệp vụ đều được bắt tập trung tại lớp `@ControllerAdvice` của từng dịch vụ và trả về định dạng JSON chuẩn (mã lỗi HTTP tương ứng).
+* **Choreography Saga**: Các giao dịch liên microservice thực hiện dựa trên cơ chế gửi/nhận sự kiện Kafka bất đồng bộ qua các topic (`booking-events`, `room-events`, `checkout-events`, `amenity-calculated-events`), đảm bảo tính lỏng lẻo và khả năng mở rộng.
+* **Bảo vệ bằng Circuit Breaker**: Tất cả các cuộc gọi đồng bộ Feign Client được bọc bởi cấu hình Resilience4j tập trung cùng các lớp Fallback để đảm bảo hệ thống không bị đổ sụp dây chuyền (Cascading Failure).
+* **Decoupled Transactions**: Thực hiện các cuộc gọi mạng (REST/Kafka) bên ngoài các khối giao dịch `@Transactional` để tránh chiếm dụng và gây nghẽn kết nối database pool.
+* **Global Exception Handler**: Tất cả các lỗi nghiệp vụ đều được bắt tập trung tại lớp `@ControllerAdvice` của từng dịch vụ và trả về định dạng JSON chuẩn.

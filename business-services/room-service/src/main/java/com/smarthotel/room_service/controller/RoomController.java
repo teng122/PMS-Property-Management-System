@@ -22,19 +22,6 @@ public class RoomController {
     @Autowired
     private RoomService roomService;
 
-    // ==========================================
-    // 1. TÌM KIẾM PHÒNG (ROOM SEARCH)
-    // ==========================================
-
-    /**
-     * Tìm kiếm danh sách các phòng trống trong khoảng thời gian đặt phòng xác định.
-     */
-    @GetMapping("/search")
-    public ResponseEntity<List<RoomResponse>> searchRooms(
-            @RequestParam("checkIn") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
-            @RequestParam("checkOut") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut) {
-        return ResponseEntity.ok(roomService.searchAvailableRooms(checkIn, checkOut));
-    }
 
     // ==========================================
     // 2. CẬP NHẬT TRẠNG THÁI PHÒNG (ROOM OPERATIONS)

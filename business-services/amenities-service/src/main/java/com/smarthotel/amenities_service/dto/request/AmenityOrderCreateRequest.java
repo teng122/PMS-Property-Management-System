@@ -7,7 +7,6 @@ import java.util.UUID;
 @Getter @Setter
 public class AmenityOrderCreateRequest {
     private UUID roomId;
-    private UUID bookingId;
     private UUID amenityId;
     private Integer quantity;
 }
