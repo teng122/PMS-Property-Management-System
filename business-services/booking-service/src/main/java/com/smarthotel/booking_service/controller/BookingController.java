@@ -16,7 +16,7 @@ import java.util.UUID;
 
 /**
  * Controller xử lý các API liên quan đến quy trình đặt phòng, check-in, check-out và quản lý Booking.
- * Các API được sắp xếp theo đúng trình tự vòng đời phục vụ của khách sạn.
+ * Tất cả endpoint trả về BookingResponse DTO thay vì Booking entity thô.
  */
 @RestController
 @RequestMapping("/api/bookings")
@@ -31,7 +31,7 @@ public class BookingController {
 
     /**
      * Khách đặt phòng trực tuyến trước qua ứng dụng di động/website (Saga Workflow).
-     * Trạng thái ban đầu sẽ là PENDING và chuyển sang CONFIRMED sau khi giữ phòng thành công.
+     * Trạng thái ban đầu sẽ là PENDING và chuyển sang AWAITING_DEPOSIT sau khi giữ phòng thành công.
      */
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -42,19 +42,10 @@ public class BookingController {
         if (userIdHeader == null || userIdHeader.trim().isEmpty()) {
             throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu thông tin người dùng trong Token!");
         }
-        UUID authenticatedUserId = UUID.fromString(userIdHeader);
-        bookingRequest.setCustomerId(authenticatedUserId);
+        bookingRequest.setCustomerId(UUID.fromString(userIdHeader));
 
         Booking booking = bookingService.createOnlineBooking(bookingRequest);
-        BookingResponse response = BookingResponse.builder()
-                .id(booking.getId())
-                .roomId(booking.getRoomId())
-                .customerId(booking.getCustomerId())
-                .checkInDate(booking.getCheckInDate())
-                .checkOutDate(booking.getCheckOutDate())
-                .status(booking.getStatus())
-                .build();
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(BookingResponse.from(booking), HttpStatus.CREATED);
     }
 
     // ==========================================
@@ -67,20 +58,17 @@ public class BookingController {
      */
     @PostMapping("/walk-in")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> performWalkInCheckIn(@RequestBody Booking walkInData) {
-        Booking newBooking = bookingService.performWalkInCheckIn(walkInData);
-        return new ResponseEntity<>(newBooking, HttpStatus.CREATED);
+    public ResponseEntity<BookingResponse> performWalkInCheckIn(@RequestBody Booking walkInData) {
+        return new ResponseEntity<>(BookingResponse.from(bookingService.performWalkInCheckIn(walkInData)), HttpStatus.CREATED);
     }
 
     /**
      * Làm thủ tục nhận phòng (Check-in) tại quầy lễ tân cho khách đã đặt phòng trước đó.
-     * Xác thực quyền sở hữu (X-User-Id) và chuyển trạng thái đơn đặt phòng từ CONFIRMED sang CHECKED_IN.
      */
     @PostMapping("/{id}/check-in")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> performCheckIn(@PathVariable("id") UUID id) {
-        Booking checkedInBooking = bookingService.performCheckIn(id);
-        return ResponseEntity.ok(checkedInBooking);
+    public ResponseEntity<BookingResponse> performCheckIn(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(BookingResponse.from(bookingService.performCheckIn(id)));
     }
 
     // ==========================================
@@ -89,7 +77,6 @@ public class BookingController {
 
     /**
      * Lấy bảng tóm tắt chi phí tạm tính (Pre-checkout Summary) trước khi khách tiến hành check-out thực tế.
-     * Thống kê tiền phòng và các dịch vụ đi kèm chưa thanh toán.
      */
     @GetMapping("/{id}/pre-checkout-summary")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
@@ -99,13 +86,11 @@ public class BookingController {
 
     /**
      * Làm thủ tục trả phòng (Check-out), giải phóng phòng vật lý sang trạng thái DIRTY và ghi nhận doanh thu.
-     * Trạng thái đơn chuyển sang CHECKED_OUT.
      */
     @PostMapping("/{id}/check-out")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> performCheckOut(@PathVariable("id") UUID id) {
-        Booking checkedOutBooking = bookingService.performCheckOut(id);
-        return ResponseEntity.ok(checkedOutBooking);
+    public ResponseEntity<BookingResponse> performCheckOut(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(BookingResponse.from(bookingService.performCheckOut(id)));
     }
 
     // ==========================================
@@ -117,22 +102,25 @@ public class BookingController {
      */
     @GetMapping("/my-bookings")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<List<Booking>> getMyBookings(@RequestHeader("X-User-Id") UUID customerId) {
-        return ResponseEntity.ok(bookingService.getBookingsByCustomerId(customerId));
+    public ResponseEntity<List<BookingResponse>> getMyBookings(@RequestHeader("X-User-Id") UUID customerId) {
+        return ResponseEntity.ok(
+                bookingService.getBookingsByCustomerId(customerId).stream()
+                        .map(BookingResponse::from)
+                        .toList()
+        );
     }
 
     /**
      * Truy vấn thông tin chi tiết một đơn đặt phòng bằng ID.
+     * CUSTOMER chỉ được xem đơn của chính mình (IDOR / BOLA Prevention).
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> findById(
+    public ResponseEntity<BookingResponse> findById(
             @PathVariable UUID id,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
         Booking booking = bookingService.getBookingById(id);
-
-        // Kiểm tra quyền sở hữu đơn hàng đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
         if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
             if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
                 throw new org.springframework.web.server.ResponseStatusException(
@@ -140,7 +128,7 @@ public class BookingController {
                 );
             }
         }
-        return ResponseEntity.ok(booking);
+        return ResponseEntity.ok(BookingResponse.from(booking));
     }
 
     /**
@@ -148,8 +136,12 @@ public class BookingController {
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<List<Booking>> getAll() {
-        return ResponseEntity.ok(bookingService.getAllBookings());
+    public ResponseEntity<List<BookingResponse>> getAll() {
+        return ResponseEntity.ok(
+                bookingService.getAllBookings().stream()
+                        .map(BookingResponse::from)
+                        .toList()
+        );
     }
 
     /**
@@ -157,8 +149,8 @@ public class BookingController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> update(@PathVariable UUID id, @RequestBody Booking updatedData) {
-        return ResponseEntity.ok(bookingService.updateBooking(id, updatedData));
+    public ResponseEntity<BookingResponse> update(@PathVariable UUID id, @RequestBody Booking updatedData) {
+        return ResponseEntity.ok(BookingResponse.from(bookingService.updateBooking(id, updatedData)));
     }
 
     /**
@@ -171,12 +163,15 @@ public class BookingController {
         return ResponseEntity.ok("Xóa thành công đơn đặt phòng có ID: " + id);
     }
 
+    // ==========================================
+    // 5. NHÓM INTERNAL / FEIGN ENDPOINTS
+    // ==========================================
+
     @GetMapping("/active-room-ids")
     public ResponseEntity<List<UUID>> getActiveRoomIds(
             @RequestParam("checkIn") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkIn,
             @RequestParam("checkOut") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate checkOut) {
-        List<UUID> activeRoomIds = bookingService.getActiveRoomIds(checkIn, checkOut);
-        return ResponseEntity.ok(activeRoomIds);
+        return ResponseEntity.ok(bookingService.getActiveRoomIds(checkIn, checkOut));
     }
 
     @GetMapping("/search-available-rooms")
@@ -186,9 +181,13 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.searchAvailableRooms(checkIn, checkOut));
     }
 
+    /**
+     * Lấy booking đang hoạt động theo roomId.
+     * CUSTOMER chỉ được xem phòng họ đang ở (IDOR / BOLA Prevention).
+     */
     @GetMapping("/active/room/{roomId}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> getActiveBookingByRoomId(
+    public ResponseEntity<BookingResponse> getActiveBookingByRoomId(
             @PathVariable("roomId") UUID roomId,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
@@ -196,8 +195,6 @@ public class BookingController {
         if (booking == null) {
             return ResponseEntity.notFound().build();
         }
-
-        // Kiểm tra quyền sở hữu đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
         if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
             if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
                 throw new org.springframework.web.server.ResponseStatusException(
@@ -205,7 +202,7 @@ public class BookingController {
                 );
             }
         }
-        return ResponseEntity.ok(booking);
+        return ResponseEntity.ok(BookingResponse.from(booking));
     }
 
     @GetMapping("/check-availability")
@@ -219,14 +216,12 @@ public class BookingController {
 
     @PostMapping("/{id}/pay-deposit")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> payDeposit(
+    public ResponseEntity<BookingResponse> payDeposit(
             @PathVariable("id") UUID id,
             @RequestParam("amount") java.math.BigDecimal amount,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestHeader(value = "X-User-Role", required = false) String userRoleHeader) {
         Booking booking = bookingService.getBookingById(id);
-
-        // Kiểm tra quyền sở hữu đơn hàng đối với vai trò CUSTOMER (IDOR / BOLA Prevention)
         if (userRoleHeader != null && userRoleHeader.contains("ROLE_CUSTOMER")) {
             if (userIdHeader == null || !booking.getCustomerId().toString().equalsIgnoreCase(userIdHeader)) {
                 throw new org.springframework.web.server.ResponseStatusException(
@@ -234,12 +229,12 @@ public class BookingController {
                 );
             }
         }
-        return ResponseEntity.ok(bookingService.payDeposit(id, amount));
+        return ResponseEntity.ok(BookingResponse.from(bookingService.payDeposit(id, amount)));
     }
 
     @PostMapping("/{id}/no-show")
     @PreAuthorize("hasAnyRole('RECEPTIONIST', 'ADMIN')")
-    public ResponseEntity<Booking> markNoShow(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(bookingService.markNoShow(id));
+    public ResponseEntity<BookingResponse> markNoShow(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(BookingResponse.from(bookingService.markNoShow(id)));
     }
 }

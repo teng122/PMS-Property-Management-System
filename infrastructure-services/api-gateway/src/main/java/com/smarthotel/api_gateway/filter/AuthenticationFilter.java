@@ -100,7 +100,7 @@ public class AuthenticationFilter implements Filter {
                path.equals("/identity-service/api/auth/register") ||
                path.equals("/identity-service/api/auth/validate") ||
                path.equals("/identity-service/api/auth/refresh") ||
-               path.equals("/room-service/api/rooms/search") ||
+               path.equals("/booking-service/api/bookings/search-available-rooms") ||
                path.startsWith("/eureka") ||
                path.startsWith("/actuator") ||
                path.equals("/favicon.ico");

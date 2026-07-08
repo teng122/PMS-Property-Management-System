@@ -7,9 +7,8 @@ import java.util.UUID;
 @Getter
 @Setter
 public class DirtyRoomResponse {
-
     private UUID id;
     private UUID roomId;
+    private String roomNumber;
     private UUID staffId;
-
 }

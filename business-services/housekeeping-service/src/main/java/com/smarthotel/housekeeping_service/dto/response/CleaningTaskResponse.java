@@ -11,6 +11,7 @@ import java.util.UUID;
 public class CleaningTaskResponse {
     private UUID id;
     private UUID roomId;
+    private String roomNumber;
     private UUID staffId;
     private CleaningTaskStatus status;
     private LocalDateTime updatedAt;
