@@ -82,6 +82,16 @@ public class RoomController {
     }
 
     /**
+     * Liệt kê toàn bộ phòng phục vụ gọi nội bộ (Feign) — ví dụ booking-service lọc phòng trống khi tìm phòng.
+     * Không giới hạn role vì luồng tìm phòng là public/khách hàng; chỉ truy cập được từ trong mạng dịch vụ
+     * hoặc qua Gateway (đã có JWT), không lộ dữ liệu quản trị nhạy cảm.
+     */
+    @GetMapping("/internal/all")
+    public ResponseEntity<List<RoomResponse>> getAllRoomsInternal() {
+        return ResponseEntity.ok(roomService.getAllRooms());
+    }
+
+    /**
      * Lấy thông tin chi tiết một phòng bằng ID phòng.
      */
     @GetMapping("/{id}")
