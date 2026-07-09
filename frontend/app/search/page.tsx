@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +13,7 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { StatusBadge, statusLabel } from "@/components/ui/status-badge";
 import { bookingApi } from "@/lib/api/services";
 import { extractErrorMessage } from "@/lib/api/error";
+import { AppShell } from "@/components/layout/app-shell";
 import { useAuthStore } from "@/stores/auth-store";
 import type { RoomSearchResult } from "@/types/api";
 
@@ -29,7 +30,9 @@ const schema = z.object({
 type SearchForm = z.infer<typeof schema>;
 
 export default function SearchPage() {
+  const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
   const [rooms, setRooms] = useState<RoomSearchResult[]>([]);
   const [selectedDates, setSelectedDates] = useState<SearchForm | null>(null);
   const [bookingMessage, setBookingMessage] = useState<string | null>(null);
@@ -60,20 +63,24 @@ export default function SearchPage() {
         checkOutDate: selectedDates.checkOut
       });
     },
-    onSuccess: (booking) => {
+    onSuccess: async (booking) => {
       setBookingMessage(`Đã tạo đặt phòng ${booking.id.slice(0, 8)}. Trạng thái hiện tại: ${statusLabel(booking.status)}. Vào Đặt phòng của tôi để theo dõi đặt cọc.`);
+      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["rooms"] });
     }
   });
 
-  return (
-    <main className="main" style={{ maxWidth: 1180, margin: "0 auto" }}>
+  if (!isHydrated) return <LoadingState label="Đang tải..." />;
+
+  const content = (
+    <div style={!user ? { maxWidth: 1180, margin: "0 auto" } : undefined}>
       <div className="topbar">
         <div>
           <h1 className="page-title">Tìm phòng trống</h1>
           <p className="muted">Chọn ngày lưu trú để xem các phòng còn phù hợp.</p>
         </div>
         <div className="actions">
-          {user ? <Link className="button secondary" href="/dashboard">Vào trang làm việc</Link> : <Link className="button" href="/login">Đăng nhập</Link>}
+          {!user ? <Link className="button" href="/login">Đăng nhập</Link> : null}
         </div>
       </div>
 
@@ -125,6 +132,12 @@ export default function SearchPage() {
           ]}
         />
       </Card>
-    </main>
+    </div>
   );
+
+  if (user) {
+    return <AppShell>{content}</AppShell>;
+  }
+
+  return <main className="main">{content}</main>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { LoadingState } from "@/components/ui/states";
@@ -13,16 +13,24 @@ export function ProtectedPage({ roles, children }: { roles: Role[]; children: Re
   const user = useAuthStore((state) => state.user);
   const isHydrated = useAuthStore((state) => state.isHydrated);
 
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    if (!user) {
+      router.replace("/login");
+    } else if (!hasAnyRole(user.role, roles)) {
+      router.replace("/dashboard");
+    }
+  }, [isHydrated, user, roles, router]);
+
   if (!isHydrated) return <LoadingState label="Đang kiểm tra phiên đăng nhập..." />;
 
   if (!user) {
-    router.replace("/login");
     return <LoadingState label="Đang chuyển về trang đăng nhập..." />;
   }
 
   if (!hasAnyRole(user.role, roles)) {
-    router.replace("/dashboard");
-    return <LoadingState label="Bạn không có quyền truy cập trang này." />;
+    return <LoadingState label="Bạn không có quyền truy cập trang này. Đang chuyển hướng..." />;
   }
 
   return <AppShell>{children}</AppShell>;

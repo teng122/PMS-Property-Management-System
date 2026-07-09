@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -68,6 +68,7 @@ export default function WalkInPage() {
 }
 
 function WalkInContent() {
+  const queryClient = useQueryClient();
   const [created, setCreated] = useState<string | null>(null);
   const rooms = useQuery({ queryKey: ["rooms", "available"], queryFn: roomApi.getAvailable });
   const availableRooms = useMemo(() => rooms.data || [], [rooms.data]);
@@ -120,10 +121,13 @@ function WalkInContent() {
       const booking = await bookingApi.walkIn(body);
       return { booking, createdCustomerName };
     },
-    onSuccess: ({ booking, createdCustomerName }) =>
+    onSuccess: async ({ booking, createdCustomerName }) => {
       setCreated(
         `Đã nhận khách${createdCustomerName ? ` cho ${createdCustomerName}` : ""}. Mã đặt phòng ${booking.id.slice(0, 8)}, tổng ${money(booking.totalAmount)}.`
-      )
+      );
+      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    }
   });
 
   const selectedRoomId = useWatch({ control, name: "roomId" });

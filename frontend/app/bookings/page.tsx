@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -172,6 +172,11 @@ function BookingDetailModal({
 }) {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
+  const [showQR, setShowQR] = useState(false);
+
+  useEffect(() => {
+    setShowQR(false);
+  }, [bookingId]);
 
   const detail = useQuery({
     queryKey: ["booking", bookingId],
@@ -187,9 +192,7 @@ function BookingDetailModal({
     mutationFn: async ({ action, booking }: { action: string; booking: BookingResponse }) => {
       switch (action) {
         case "deposit": {
-          const raw = prompt(`Số tiền đặt cọc tối thiểu ${money(booking.depositAmount)}`, String(booking.depositAmount));
-          if (!raw) return null;
-          return bookingApi.payDeposit(booking.id, Number(raw));
+          return bookingApi.payDeposit(booking.id, booking.depositAmount);
         }
         case "check-in":
           return bookingApi.checkIn(booking.id);
@@ -208,6 +211,9 @@ function BookingDetailModal({
     onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
       await onChanged();
+      if (variables.action === "deposit") {
+        setShowQR(false);
+      }
       if (variables.action === "check-out") {
         onMessage("Đã trả phòng. Hoá đơn đang được chuẩn bị, vui lòng mở mục Hoá đơn để theo dõi và thanh toán.");
       } else if (variables.action === "delete") {
@@ -245,42 +251,81 @@ function BookingDetailModal({
             <div className="toast">Đặt phòng đang được xử lý. Trạng thái sẽ tự cập nhật trong giây lát.</div>
           ) : null}
 
+          {showQR && booking.status === "AWAITING_DEPOSIT" ? (
+            <div className="grid cols-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18 }}>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <img
+                  src={`https://img.vietqr.io/image/970415-113366668888-compact2.png?amount=${booking.depositAmount * 1000}&addInfo=DEP${booking.id}`}
+                  alt="VietQR đặt cọc"
+                  style={{ width: "100%", maxWidth: 260, height: "auto", borderRadius: 16, border: "1px solid var(--line)" }}
+                />
+              </div>
+              <div className="state" style={{ textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <strong>Thanh toán đặt cọc</strong>
+                <p>Số tiền cọc: <strong style={{ color: "var(--primary)" }}>{money(booking.depositAmount)}</strong></p>
+                <p className="muted" style={{ fontSize: 13 }}>
+                  Sau khi quét mã chuyển khoản thành công, vui lòng bấm nút xác nhận dưới đây để hoàn tất.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="actions">
-            {isCustomer && booking.status === "AWAITING_DEPOSIT" ? (
-              <Button disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "deposit", booking })}>
-                Đặt cọc
-              </Button>
-            ) : null}
-            {isReception && booking.status === "AWAITING_DEPOSIT" ? (
-              <Button disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "deposit", booking })}>
-                Thu cọc
-              </Button>
-            ) : null}
-            {isReception && booking.status === "CONFIRMED" ? (
+            {showQR && booking.status === "AWAITING_DEPOSIT" ? (
               <>
-                <Button variant="success" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "check-in", booking })}>
-                  Nhận phòng
+                <Button
+                  variant="success"
+                  disabled={mutation.isPending}
+                  onClick={() => mutation.mutate({ action: "deposit", booking })}
+                >
+                  {isCustomer ? "Xác nhận đã chuyển khoản" : "Xác nhận đã thu cọc"}
                 </Button>
-                <Button variant="danger" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "no-show", booking })}>
-                Khách không đến
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowQR(false)}
+                >
+                  Quay lại
                 </Button>
               </>
-            ) : null}
-            {isReception && booking.status === "CHECKED_IN" ? (
-              <Button disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "check-out", booking })}>
-                Trả phòng
-              </Button>
-            ) : null}
-            {user?.role === "ADMIN" ? (
-              <Button variant="danger" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "delete", booking })}>
-                Xoá đặt phòng
-              </Button>
-            ) : null}
-            {isReception ? (
-              <Link className="button secondary" href={`/invoices?bookingId=${booking.id}`}>
-                Mở hoá đơn
-              </Link>
-            ) : null}
+            ) : (
+              <>
+                {isCustomer && booking.status === "AWAITING_DEPOSIT" ? (
+                  <Button onClick={() => setShowQR(true)}>
+                    Đặt cọc
+                  </Button>
+                ) : null}
+                {isReception && booking.status === "AWAITING_DEPOSIT" ? (
+                  <Button onClick={() => setShowQR(true)}>
+                    Thu cọc
+                  </Button>
+                ) : null}
+                {isReception && booking.status === "CONFIRMED" ? (
+                  <>
+                    <Button variant="success" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "check-in", booking })}>
+                      Nhận phòng
+                    </Button>
+                    <Button variant="danger" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "no-show", booking })}>
+                      Khách không đến
+                    </Button>
+                  </>
+                ) : null}
+                {isReception && booking.status === "CHECKED_IN" ? (
+                  <Button disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "check-out", booking })}>
+                    Trả phòng
+                  </Button>
+                ) : null}
+                {user?.role === "ADMIN" ? (
+                  <Button variant="danger" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "delete", booking })}>
+                    Xoá đặt phòng
+                  </Button>
+                ) : null}
+                {isReception ? (
+                  <Link className="button secondary" href={`/invoices?bookingId=${booking.id}`}>
+                    Mở hoá đơn
+                  </Link>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       ) : null}

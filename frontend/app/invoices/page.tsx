@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -112,6 +112,8 @@ function PaymentModal({ invoice, onClose }: { invoice: InvoiceResponse | null; o
   const [payment, setPayment] = useState<PaymentInitResponse | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const isRefund = invoice ? invoice.totalAmount < 0 : false;
+
   const payMutation = useMutation({
     mutationFn: (id: UUID) => billingApi.pay(id),
     onSuccess: (data) => setPayment(data)
@@ -120,15 +122,20 @@ function PaymentModal({ invoice, onClose }: { invoice: InvoiceResponse | null; o
   const confirmMutation = useMutation({
     mutationFn: (id: UUID) => billingApi.confirm(id),
     onSuccess: async () => {
-      setMessage("Đã xác nhận thanh toán thành công.");
+      setMessage(isRefund ? "Đã xác nhận hoàn tiền thành công." : "Đã xác nhận thanh toán thành công.");
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
     }
   });
 
+  useEffect(() => {
+    setPayment(null);
+    setMessage(null);
+  }, [invoice]);
+
   if (!invoice) return null;
 
   return (
-    <Modal open={!!invoice} title={`Thanh toán hoá đơn ${invoice.id.slice(0, 8)}`} onClose={onClose}>
+    <Modal open={!!invoice} title={isRefund ? `Hoàn tiền hoá đơn ${invoice.id.slice(0, 8)}` : `Thanh toán hoá đơn ${invoice.id.slice(0, 8)}`} onClose={onClose}>
       <div className="grid">
         <div className="grid cols-3">
           <Metric title="Tổng tiền" value={money(invoice.totalAmount)} />
@@ -138,7 +145,20 @@ function PaymentModal({ invoice, onClose }: { invoice: InvoiceResponse | null; o
         {payMutation.isError ? <ErrorState message={extractErrorMessage(payMutation.error)} /> : null}
         {confirmMutation.isError ? <ErrorState message={extractErrorMessage(confirmMutation.error)} /> : null}
         {message ? <div className="toast">{message}</div> : null}
-        {payment ? (
+
+        {isRefund && invoice.status !== "PAID" ? (
+          <div className="grid cols-1" style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18 }}>
+            <div className="state" style={{ textAlign: "left", padding: 14, backgroundColor: "var(--surface-light)", borderRadius: 12 }}>
+              <strong style={{ color: "var(--danger)" }}>YÊU CẦU HOÀN TIỀN CHO KHÁCH</strong>
+              <p style={{ marginTop: 8 }}>Số tiền thối lại: <strong style={{ color: "var(--danger)", fontSize: 16 }}>{money(Math.abs(invoice.totalAmount))}</strong></p>
+              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+                Vui lòng thối lại tiền mặt hoặc thực hiện chuyển khoản thủ công cho khách hàng, sau đó bấm nút xác nhận hoàn tiền bên dưới để hoàn tất.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {!isRefund && payment ? (
           <div className="grid cols-2">
             <div>
               <Image
@@ -158,15 +178,17 @@ function PaymentModal({ invoice, onClose }: { invoice: InvoiceResponse | null; o
           </div>
         ) : null}
         <div className="actions">
-          <Button disabled={payMutation.isPending || invoice.status === "PAID"} onClick={() => payMutation.mutate(invoice.id)}>
-            Tạo QR
-          </Button>
+          {!isRefund ? (
+            <Button disabled={payMutation.isPending || invoice.status === "PAID"} onClick={() => payMutation.mutate(invoice.id)}>
+              Tạo QR
+            </Button>
+          ) : null}
           <Button
             variant="success"
             disabled={confirmMutation.isPending || invoice.status === "PAID"}
             onClick={() => confirmMutation.mutate(invoice.id)}
           >
-            Xác nhận đã thanh toán
+            {isRefund ? "Xác nhận đã hoàn tiền" : "Xác nhận đã thanh toán"}
           </Button>
         </div>
       </div>

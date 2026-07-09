@@ -46,6 +46,7 @@ function HousekeepingContent() {
       setMessage(variables.action === "start" ? "Đã bắt đầu dọn phòng." : "Đã hoàn thành dọn phòng.");
       await queryClient.invalidateQueries({ queryKey: ["housekeeping-tasks"] });
       await queryClient.invalidateQueries({ queryKey: ["dirty-rooms"] });
+      await queryClient.invalidateQueries({ queryKey: ["rooms"] });
     }
   });
 
