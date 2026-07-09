@@ -176,6 +176,7 @@ function OrderAmenityModal({
   onClose: () => void;
   onDone: (message: string) => void;
 }) {
+  const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const [error, setError] = useState<string | null>(null);
 
@@ -212,6 +213,7 @@ function OrderAmenityModal({
     try {
       const order = await amenityApi.order(values);
       onDone(`Đã gửi yêu cầu dịch vụ. Mã đơn ${order.id.slice(0, 8)}.`);
+      await queryClient.invalidateQueries({ queryKey: ["amenity-orders"] });
       onClose();
     } catch (err) {
       setError(extractErrorMessage(err));
