@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +44,21 @@ class InvoiceServiceTest {
 
         assertThat(resp.amount()).isEqualByComparingTo(new BigDecimal("82000"));
         assertThat(resp.qrImageUrl()).contains("amount=82000");
+    }
+
+    @Test
+    void initPayment_amountLonVanDoiSangVndThat() {
+        UUID id = UUID.randomUUID();
+        Invoice inv = new Invoice();
+        inv.setId(id);
+        inv.setBookingId(UUID.randomUUID());
+        inv.setTotalAmount(new BigDecimal("10500"));
+        when(repo.findByIdOrThrow(id)).thenReturn(inv);
+
+        PaymentInitResponse resp = service.initPayment(id);
+
+        assertThat(resp.amount()).isEqualByComparingTo(new BigDecimal("10500000"));
+        assertThat(resp.qrImageUrl()).contains("amount=10500000");
     }
 
     @Test

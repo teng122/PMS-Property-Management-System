@@ -25,7 +25,6 @@ public class InvoiceService {
 
     private static final BigDecimal VAT_RATE = new BigDecimal("0.10");
     private static final BigDecimal VND_THOUSAND_UNIT_FACTOR = new BigDecimal("1000");
-    private static final BigDecimal VND_ALREADY_NORMALIZED_THRESHOLD = new BigDecimal("10000");
 
     private final InvoiceRepository repo;
 
@@ -54,11 +53,8 @@ public class InvoiceService {
             return BigDecimal.ZERO;
         }
 
-        BigDecimal normalized = amount.abs().compareTo(VND_ALREADY_NORMALIZED_THRESHOLD) < 0
-                ? amount.multiply(VND_THOUSAND_UNIT_FACTOR)
-                : amount;
-
-        return normalized.setScale(0, RoundingMode.HALF_UP);
+        return amount.multiply(VND_THOUSAND_UNIT_FACTOR)
+                .setScale(0, RoundingMode.HALF_UP);
     }
 
     /**

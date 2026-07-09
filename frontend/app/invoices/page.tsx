@@ -14,7 +14,7 @@ import { PageHeading } from "@/components/layout/page-heading";
 import { ProtectedPage } from "@/components/layout/protected-page";
 import { billingApi } from "@/lib/api/services";
 import { extractErrorMessage } from "@/lib/api/error";
-import { money } from "@/lib/format";
+import { money, moneyFromVnd } from "@/lib/format";
 import type { InvoiceResponse, PaymentInitResponse, UUID } from "@/types/api";
 
 export default function InvoicesPage() {
@@ -152,7 +152,7 @@ function PaymentModal({ invoice, onClose }: { invoice: InvoiceResponse | null; o
             </div>
             <div className="state" style={{ textAlign: "left" }}>
               <strong>{payment.state}</strong>
-              <p>Số tiền: {money(payment.amount)}</p>
+              <p>Số tiền: {moneyFromVnd(payment.amount)}</p>
               <p className="muted">Sau khi khách chuyển khoản, lễ tân bấm xác nhận để hoàn tất thanh toán.</p>
             </div>
           </div>

@@ -1,10 +1,12 @@
 export function money(value?: number | null) {
   const amount = Number(value || 0);
-  const amountInVnd = Math.abs(amount) < 10000 ? amount * 1000 : amount;
+  return moneyFromVnd(amount * 1000);
+}
 
+export function moneyFromVnd(value?: number | null) {
   return `${new Intl.NumberFormat("vi-VN", {
     maximumFractionDigits: 0
-  }).format(amountInVnd)} VND`;
+  }).format(Number(value || 0))} VND`;
 }
 
 export function dateTime(value?: string | null) {
