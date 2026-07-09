@@ -42,9 +42,6 @@ public class BillingSagaConsumer {
         BigDecimal subtotal = roomCharge.add(serviceCharge);
         BigDecimal tax = subtotal.multiply(VAT_RATE).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalAmount = subtotal.add(tax).subtract(depositAmount);
-        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
-            totalAmount = BigDecimal.ZERO;
-        }
 
         // Tạo hóa đơn trạng thái UNPAID
         Invoice inv = new Invoice();

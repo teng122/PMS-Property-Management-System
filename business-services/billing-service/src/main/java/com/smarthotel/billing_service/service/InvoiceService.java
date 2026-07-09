@@ -41,6 +41,10 @@ public class InvoiceService {
      */
     public PaymentInitResponse initPayment(UUID id) {
         Invoice inv = findById(id);
+        if (inv.getTotalAmount().compareTo(BigDecimal.ZERO) < 0) {
+            BigDecimal refundAmount = normalizeToVnd(inv.getTotalAmount().negate());
+            return new PaymentInitResponse("REFUND_REQUIRED", refundAmount, "REFUND_PENDING");
+        }
         BigDecimal paymentAmount = normalizeToVnd(inv.getTotalAmount());
         String qrUrl = "https://img.vietqr.io/image/970415-113366668888-compact2.png"
                 + "?amount=" + paymentAmount.toPlainString()
@@ -94,7 +98,7 @@ public class InvoiceService {
         BigDecimal roomRevenue = paid.stream().map(Invoice::getRoomCharge).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal serviceRevenue = paid.stream().map(Invoice::getServiceCharge).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal taxTotal = paid.stream().map(Invoice::getTax).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalRevenue = paid.stream().map(Invoice::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalRevenue = roomRevenue.add(serviceRevenue).add(taxTotal);
 
         return new com.smarthotel.billing_service.dto.RevenueStatsResponse(
                 all.size(),

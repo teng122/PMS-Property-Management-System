@@ -88,4 +88,20 @@ class InvoiceServiceTest {
         assertThatThrownBy(() -> service.markPaid(id))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    void initPayment_amountAm_traVeRefundRequired() {
+        UUID id = UUID.randomUUID();
+        Invoice inv = new Invoice();
+        inv.setId(id);
+        inv.setBookingId(UUID.randomUUID());
+        inv.setTotalAmount(new BigDecimal("-90"));
+        when(repo.findByIdOrThrow(id)).thenReturn(inv);
+
+        PaymentInitResponse resp = service.initPayment(id);
+
+        assertThat(resp.qrImageUrl()).isEqualTo("REFUND_REQUIRED");
+        assertThat(resp.amount()).isEqualByComparingTo(new BigDecimal("90000"));
+        assertThat(resp.state()).isEqualTo("REFUND_PENDING");
+    }
 }
