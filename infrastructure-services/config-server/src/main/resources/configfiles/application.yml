@@ -8,3 +8,8 @@ spring:
             readTimeout: 5000
       circuitbreaker:
         enabled: true
+
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
