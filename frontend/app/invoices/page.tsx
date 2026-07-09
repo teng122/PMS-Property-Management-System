@@ -30,7 +30,7 @@ export default function InvoicesPage() {
 function InvoicesContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  const [selected, setSelected] = useState<InvoiceResponse | null>(null);
+  const [selectedId, setSelectedId] = useState<UUID | null>(null);
 
   const invoices = useQuery({
     queryKey: ["invoices"],
@@ -46,6 +46,7 @@ function InvoicesContent() {
   });
 
   const rows = invoices.data || [];
+  const selectedInvoice = rows.find((inv) => inv.id === selectedId) || null;
 
   return (
     <>
@@ -93,7 +94,7 @@ function InvoicesContent() {
               key: "actions",
               header: "Thao tác",
               render: (invoice) => (
-                <Button variant="secondary" onClick={() => setSelected(invoice)}>
+                <Button variant="secondary" onClick={() => setSelectedId(invoice.id)}>
                   Thanh toán
                 </Button>
               )
@@ -102,7 +103,7 @@ function InvoicesContent() {
         />
       </Card>
 
-      <PaymentModal invoice={selected} onClose={() => setSelected(null)} />
+      <PaymentModal invoice={selectedInvoice} onClose={() => setSelectedId(null)} />
     </>
   );
 }
@@ -124,6 +125,7 @@ function PaymentModal({ invoice, onClose }: { invoice: InvoiceResponse | null; o
     onSuccess: async () => {
       setMessage(isRefund ? "Đã xác nhận hoàn tiền thành công." : "Đã xác nhận thanh toán thành công.");
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      await queryClient.invalidateQueries({ queryKey: ["invoice"] });
     }
   });
 

@@ -11,6 +11,7 @@ import com.smarthotel.common_shared.security.SharedSecurityConfig;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
+@org.springframework.cache.annotation.EnableCaching
 @Import(SharedSecurityConfig.class)
 public class RoomServiceApplication {
 

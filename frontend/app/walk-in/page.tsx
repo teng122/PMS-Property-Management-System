@@ -29,6 +29,11 @@ const schema = z
     checkOutDate: z.string().min(1, "Chọn ngày trả phòng")
   })
   .superRefine((value, ctx) => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (value.checkOutDate <= todayStr) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["checkOutDate"], message: "Ngày trả phòng phải sau ngày hôm nay" });
+    }
+
     if (value.customerId) {
       const parsed = z.string().uuid().safeParse(value.customerId);
       if (!parsed.success) {
@@ -88,7 +93,7 @@ function WalkInContent() {
       password: "guest123",
       fullName: "",
       email: "",
-      checkOutDate: new Date().toISOString().slice(0, 10)
+      checkOutDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10)
     }
   });
 

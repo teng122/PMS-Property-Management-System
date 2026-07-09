@@ -51,6 +51,14 @@ public class BookingService {
      */
     @Transactional
     public Booking createOnlineBooking(BookingRequest bookingRequest) {
+        // Khóa độc quyền phòng ở mức cơ sở dữ liệu để ngăn race condition (2 người đặt cùng lúc) mà không gây nghẽn pool kết nối
+        if (!bookingRepository.tryAcquireRoomLock(bookingRequest.getRoomId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Phòng này đang được một khách hàng khác thực hiện thao tác đặt chỗ. Vui lòng thử lại sau 5 phút!"
+            );
+        }
+
         // Kiểm tra trùng lịch đặt phòng cục bộ ngay lập tức (Fail-Fast)
         boolean isAvailable = checkAvailability(
                 bookingRequest.getRoomId(),
@@ -61,7 +69,7 @@ public class BookingService {
         if (!isAvailable) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.CONFLICT,
-                    "Phòng đã có khách khác đặt trùng lịch từ trước!"
+                    "Phòng đã có khách khác đặt trùng lịch từ trước! Vui lòng thử lại sau 5 phút!"
             );
         }
 
@@ -70,8 +78,8 @@ public class BookingService {
             throw new BookingNotFoundException("Không tìm thấy thông tin phòng với ID: " + bookingRequest.getRoomId());
         }
 
-        if (bookingRequest.getCheckInDate().isAfter(bookingRequest.getCheckOutDate())) {
-            throw new IllegalArgumentException("Ngày check-out phải sau ngày check-in!");
+        if (!bookingRequest.getCheckOutDate().isAfter(bookingRequest.getCheckInDate())) {
+            throw new IllegalArgumentException("Ngày trả phòng (check-out) phải sau ngày nhận phòng (check-in) ít nhất 1 ngày!");
         }
 
         long days = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate());
@@ -117,6 +125,14 @@ public class BookingService {
      */
     @Transactional
     public Booking performWalkInCheckIn(Booking walkInData) {
+        // Khóa độc quyền phòng ở mức cơ sở dữ liệu để ngăn race condition nhận phòng trùng
+        if (!bookingRepository.tryAcquireRoomLock(walkInData.getRoomId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Phòng này đang được một khách hàng khác thực hiện thao tác nhận phòng. Vui lòng thử lại sau 5 phút!"
+            );
+        }
+
         RoomDto room = roomClient.getRoomById(walkInData.getRoomId());
         if (room == null) {
             throw new BookingNotFoundException("Không tìm thấy thông tin phòng từ Room Service!");
@@ -127,8 +143,8 @@ public class BookingService {
         if (walkInData.getCheckOutDate() == null) {
             throw new IllegalArgumentException("Ngày check-out không được trống!");
         }
-        if (walkInData.getCheckOutDate().toLocalDate().isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Ngày check-out của khách vãng lai phải ở tương lai!");
+        if (!walkInData.getCheckOutDate().toLocalDate().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Ngày trả phòng (check-out) phải sau ngày nhận phòng (hôm nay) ít nhất 1 ngày!");
         }
 
         long days = ChronoUnit.DAYS.between(LocalDate.now(), walkInData.getCheckOutDate().toLocalDate());

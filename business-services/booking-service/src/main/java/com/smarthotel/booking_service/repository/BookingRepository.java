@@ -34,8 +34,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     @Query("SELECT COUNT(b) FROM Booking b " +
            "WHERE b.roomId = :roomId " +
-           "AND b.id != :bookingId " +
-           "AND b.status IN (com.smarthotel.booking_service.entity.BookingStatus.AWAITING_DEPOSIT, com.smarthotel.booking_service.entity.BookingStatus.CONFIRMED, com.smarthotel.booking_service.entity.BookingStatus.CHECKED_IN) " +
+           "AND (:bookingId IS NULL OR b.id != :bookingId) " +
+           "AND b.status NOT IN (com.smarthotel.booking_service.entity.BookingStatus.CANCELLED, com.smarthotel.booking_service.entity.BookingStatus.NO_SHOW, com.smarthotel.booking_service.entity.BookingStatus.CHECKED_OUT) " +
            "AND b.checkOutDate > :start AND b.checkInDate < :end")
     long countConflictingBookings(
         @Param("roomId") UUID roomId,
@@ -43,4 +43,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("start") LocalDateTime start,
         @Param("end") LocalDateTime end
     );
+
+    @Query(value = "SELECT pg_try_advisory_xact_lock(hashtext(cast(:roomId as text)))", nativeQuery = true)
+    boolean tryAcquireRoomLock(@Param("roomId") UUID roomId);
+
+    @Query("SELECT b FROM Booking b WHERE b.status IN (com.smarthotel.booking_service.entity.BookingStatus.PENDING, com.smarthotel.booking_service.entity.BookingStatus.AWAITING_DEPOSIT) AND b.createdAt < :limit")
+    List<Booking> findExpiredBookings(@Param("limit") LocalDateTime limit);
 }

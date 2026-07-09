@@ -24,6 +24,9 @@ public class AuthService {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên tài khoản đã tồn tại");
@@ -125,6 +128,12 @@ public class AuthService {
     }
 
     public TokenValidationResponse validateToken(String token) {
+        // Kiểm tra blacklist trong Redis trước
+        Boolean isBlacklisted = redisTemplate.hasKey("blacklist:" + token);
+        if (Boolean.TRUE.equals(isBlacklisted)) {
+            return new TokenValidationResponse(false, null, null);
+        }
+
         boolean valid = jwtService.validateToken(token);
         if (valid) {
             String username = jwtService.getUsernameFromToken(token);
@@ -135,6 +144,26 @@ public class AuthService {
             }
         }
         return new TokenValidationResponse(false, null, null);
+    }
+
+    public void logout(String authHeader) {
+        if (authHeader == null || authHeader.trim().isEmpty()) {
+            return;
+        }
+
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+
+        try {
+            if (jwtService.validateToken(token)) {
+                java.util.Date expiration = jwtService.getExpirationFromToken(token);
+                long ttl = expiration.getTime() - System.currentTimeMillis();
+                if (ttl > 0) {
+                    redisTemplate.opsForValue().set("blacklist:" + token, "true", java.time.Duration.ofMillis(ttl));
+                }
+            }
+        } catch (Exception e) {
+            // Token hết hạn hoặc không hợp lệ, không cần xử lý thêm
+        }
     }
 
     public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {

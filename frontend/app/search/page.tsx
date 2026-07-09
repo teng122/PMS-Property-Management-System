@@ -18,13 +18,14 @@ import { useAuthStore } from "@/stores/auth-store";
 import type { RoomSearchResult } from "@/types/api";
 
 const today = new Date().toISOString().slice(0, 10);
+const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
 const schema = z.object({
   checkIn: z.string().min(1, "Chọn ngày nhận phòng"),
   checkOut: z.string().min(1, "Chọn ngày trả phòng")
-}).refine((data) => data.checkOut >= data.checkIn, {
+}).refine((data) => data.checkOut > data.checkIn, {
   path: ["checkOut"],
-  message: "Ngày trả phòng phải sau hoặc bằng ngày nhận phòng"
+  message: "Ngày trả phòng phải sau ngày nhận phòng"
 });
 
 type SearchForm = z.infer<typeof schema>;
@@ -43,7 +44,7 @@ export default function SearchPage() {
     formState: { errors }
   } = useForm<SearchForm>({
     resolver: zodResolver(schema),
-    defaultValues: { checkIn: today, checkOut: today }
+    defaultValues: { checkIn: today, checkOut: tomorrow }
   });
 
   const searchMutation = useMutation({
@@ -67,6 +68,9 @@ export default function SearchPage() {
       setBookingMessage(`Đã tạo đặt phòng ${booking.id.slice(0, 8)}. Trạng thái hiện tại: ${statusLabel(booking.status)}. Vào Đặt phòng của tôi để theo dõi đặt cọc.`);
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      if (selectedDates) {
+        searchMutation.mutate(selectedDates);
+      }
     }
   });
 
@@ -86,18 +90,26 @@ export default function SearchPage() {
 
       <Card>
         <CardHeader title="Khoảng ngày lưu trú" description="Ngày nhận phòng và trả phòng dự kiến của khách." />
-        <form className="toolbar" onSubmit={handleSubmit((values) => searchMutation.mutate(values))}>
+        <form className="toolbar" style={{ alignItems: "flex-start" }} onSubmit={handleSubmit((values) => {
+          setBookingMessage(null);
+          bookingMutation.reset();
+          searchMutation.mutate(values);
+        })}>
           <div className="field" style={{ minWidth: 180 }}>
             <label>Check-in</label>
             <input className="input" type="date" {...register("checkIn")} />
-            {errors.checkIn ? <span className="field-error">{errors.checkIn.message}</span> : null}
+            <div style={{ minHeight: 20 }}>
+              {errors.checkIn ? <span className="field-error">{errors.checkIn.message}</span> : null}
+            </div>
           </div>
           <div className="field" style={{ minWidth: 180 }}>
             <label>Check-out</label>
             <input className="input" type="date" {...register("checkOut")} />
-            {errors.checkOut ? <span className="field-error">{errors.checkOut.message}</span> : null}
+            <div style={{ minHeight: 20 }}>
+              {errors.checkOut ? <span className="field-error">{errors.checkOut.message}</span> : null}
+            </div>
           </div>
-          <Button type="submit" disabled={searchMutation.isPending} style={{ alignSelf: "end" }}>
+          <Button type="submit" disabled={searchMutation.isPending} style={{ marginTop: 25 }}>
             {searchMutation.isPending ? "Đang tìm..." : "Tìm phòng"}
           </Button>
         </form>
@@ -110,16 +122,16 @@ export default function SearchPage() {
         <DataTable
           rows={rooms}
           getRowKey={(room) => room.id}
-          searchableText={(room) => `${room.roomNumber} ${room.roomType} ${room.status}`}
+          searchableText={(room) => `${room.roomNumber} ${room.type}`}
           emptyLabel="Chưa có phòng phù hợp"
           columns={[
-            { key: "room", header: "Phòng", render: (room) => <strong>{room.roomNumber}</strong> },
-            { key: "type", header: "Loại", render: (room) => room.roomType },
-            { key: "price", header: "Giá", render: (room) => `$${Number(room.price || 0).toFixed(2)}` },
-            { key: "status", header: "Trạng thái", render: (room) => <StatusBadge status={room.status} /> },
+            { key: "room", header: "Phòng", width: "15%", render: (room) => <strong>{room.roomNumber}</strong> },
+            { key: "type", header: "Loại", width: "25%", render: (room) => room.type },
+            { key: "price", header: "Giá", width: "20%", render: (room) => `$${Number(room.price || 0).toFixed(2)}` },
             {
               key: "actions",
               header: "Thao tác",
+              width: "40%",
               render: (room) =>
                 user?.role === "CUSTOMER" ? (
                   <Button disabled={bookingMutation.isPending} onClick={() => bookingMutation.mutate(room.id)}>

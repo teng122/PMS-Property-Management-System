@@ -8,6 +8,8 @@ import com.smarthotel.amenities_service.repository.AmenityRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +36,7 @@ public class AmenityService {
     /**
      * Thêm mới một loại tiện ích dịch vụ vào hệ thống (ví dụ: Massage, Ăn sáng, Giặt là...).
      */
+    @CacheEvict(value = "amenities", allEntries = true)
     public AmenityResponse createAmenity(AmenityCreateRequest request) {
         Amenity amenity = new Amenity();
         amenity.setName(request.getName());
@@ -53,6 +56,7 @@ public class AmenityService {
     /**
      * Lấy toàn bộ danh sách tiện ích dịch vụ hiện có trong danh mục.
      */
+    @Cacheable(value = "amenities", key = "'all'")
     public List<AmenityResponse> getAllAmenities() {
         return amenityRepository.findAll().stream()
                 .map(amenity -> modelMapper.map(amenity, AmenityResponse.class))
@@ -62,6 +66,7 @@ public class AmenityService {
     /**
      * Tìm thông tin tiện ích dịch vụ chi tiết dựa trên ID.
      */
+    @Cacheable(value = "amenities", key = "#id")
     public AmenityResponse getAmenityById(UUID id) {
         Amenity amenity = amenityRepository.findByIdOrThrow(id);
         return modelMapper.map(amenity, AmenityResponse.class);

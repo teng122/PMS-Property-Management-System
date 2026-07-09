@@ -23,6 +23,9 @@ public class AuthenticationFilter implements Filter {
     @Value("${jwt.secret}")
     private String secretKey;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
 
     // dùng HMACSHA chuyển secretKey thành object Key.
     private Key getSigningKey() {
@@ -60,6 +63,19 @@ public class AuthenticationFilter implements Filter {
         }
 
         String token = authHeader.substring(7);
+
+        // Kiểm tra blacklist trong Redis
+        try {
+            Boolean isBlacklisted = redisTemplate.hasKey("blacklist:" + token);
+            if (Boolean.TRUE.equals(isBlacklisted)) {
+                httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                httpResponse.setContentType("application/json;charset=UTF-8");
+                httpResponse.getWriter().write("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Token đã bị vô hiệu hóa (đã đăng xuất)\"}");
+                return;
+            }
+        } catch (Exception e) {
+            // Nếu không kết nối được Redis, vẫn tiếp tục để tránh ngắt quãng hệ thống
+        }
 
         String username;
         String role;
