@@ -21,6 +21,7 @@ public interface RoomClient {
     @PutMapping("/api/rooms/{id}/status")
     void updateRoomStatus(@PathVariable("id") UUID id, @RequestBody RoomStatusUpdateRequest request);
 
-    @GetMapping("/api/rooms/all")
+    // Dùng endpoint nội bộ (permitAll) để luồng tìm phòng public/khách hàng không bị 403.
+    @GetMapping("/api/rooms/internal/all")
     List<RoomDto> getAllRooms();
 }

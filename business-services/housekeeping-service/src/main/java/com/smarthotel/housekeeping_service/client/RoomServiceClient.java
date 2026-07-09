@@ -13,7 +13,8 @@ public interface RoomServiceClient {
     @GetMapping("/api/rooms/{id}")
     RoomDto getRoomById(@PathVariable("id") UUID id);
 
-    @PutMapping("/api/rooms/{id}/status")
+    // Dùng endpoint nội bộ (permitAll) để STAFF bắt đầu dọn phòng không bị 403.
+    @PutMapping("/api/rooms/internal/{id}/status")
     void updateRoomStatus(
             @PathVariable("id") UUID id,
             @RequestBody RoomStatusUpdateRequest request

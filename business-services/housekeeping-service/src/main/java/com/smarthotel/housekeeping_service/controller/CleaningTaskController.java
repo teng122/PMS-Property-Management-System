@@ -56,7 +56,7 @@ public class CleaningTaskController {
      */
     @PostMapping("/tasks/{id}/start")
     public ResponseEntity<CleaningTaskResponse> startTask(
-            @PathVariable UUID id,
+            @PathVariable("id") UUID id,
             @RequestHeader(value = "X-User-Id", required = false) UUID staffId) {
         return ResponseEntity.ok(cleaningTaskService.startTask(id, staffId));
     }
@@ -66,7 +66,7 @@ public class CleaningTaskController {
      * Chuyển trạng thái công việc sang COMPLETED và cập nhật phòng vật lý thành AVAILABLE.
      */
     @PostMapping("/tasks/{id}/complete")
-    public ResponseEntity<CleaningTaskResponse> completeTask(@PathVariable UUID id) {
+    public ResponseEntity<CleaningTaskResponse> completeTask(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(cleaningTaskService.completeTask(id));
     }
 }

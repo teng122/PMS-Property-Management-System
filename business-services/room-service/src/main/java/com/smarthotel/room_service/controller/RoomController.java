@@ -48,6 +48,18 @@ public class RoomController {
     }
 
     /**
+     * Cập nhật trạng thái phòng cho gọi nội bộ (Feign) — vd housekeeping (STAFF) đặt CLEANING khi bắt đầu dọn,
+     * booking đặt OCCUPIED khi check-in. Không giới hạn role vì đây là luồng service-to-service
+     * (đã qua Gateway/mạng nội bộ), tránh phụ thuộc vào role của người bấm.
+     */
+    @PutMapping("/internal/{id}/status")
+    public ResponseEntity<RoomResponse> updateRoomStatusInternal(
+            @PathVariable("id") UUID id,
+            @RequestBody RoomStatusUpdateRequest request) {
+        return ResponseEntity.ok(roomService.updateRoomStatus(id, request));
+    }
+
+    /**
      * Admin cập nhật thông tin chi tiết một phòng.
      */
     @PutMapping("/{id}")
@@ -78,6 +90,16 @@ public class RoomController {
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<List<RoomResponse>> getAllRooms() {
+        return ResponseEntity.ok(roomService.getAllRooms());
+    }
+
+    /**
+     * Liệt kê toàn bộ phòng phục vụ gọi nội bộ (Feign) — ví dụ booking-service lọc phòng trống khi tìm phòng.
+     * Không giới hạn role vì luồng tìm phòng là public/khách hàng; chỉ truy cập được từ trong mạng dịch vụ
+     * hoặc qua Gateway (đã có JWT), không lộ dữ liệu quản trị nhạy cảm.
+     */
+    @GetMapping("/internal/all")
+    public ResponseEntity<List<RoomResponse>> getAllRoomsInternal() {
         return ResponseEntity.ok(roomService.getAllRooms());
     }
 
