@@ -33,6 +33,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.refreshToken(request));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
+        authService.logout(token);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/users/{id}")
     public ResponseEntity<UserResponse> getUserById(
             @PathVariable("id") java.util.UUID id,

@@ -13,6 +13,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -42,6 +44,7 @@ public class RoomService {
      * Cập nhật trạng thái vật lý của một phòng (ví dụ: chuyển từ DIRTY sang AVAILABLE sau khi dọn xong).
      */
     @Transactional
+    @CacheEvict(value = "rooms", allEntries = true)
     public RoomResponse updateRoomStatus(UUID id, RoomStatusUpdateRequest request) {
         Room room = roomRepository.findByIdOrThrow(id);
 
@@ -66,6 +69,7 @@ public class RoomService {
      * Admin tạo mới một phòng vật lý.
      */
     @Transactional
+    @CacheEvict(value = "rooms", allEntries = true)
     public RoomResponse createRoom(RoomCreateRequest request) {
         RoomStatus initialStatus;
         try {
@@ -92,6 +96,7 @@ public class RoomService {
      * Admin cập nhật thông tin một phòng vật lý (số phòng, loại, giá, trạng thái).
      */
     @Transactional
+    @CacheEvict(value = "rooms", allEntries = true)
     public RoomResponse updateRoom(UUID id, RoomCreateRequest request) {
         Room room = roomRepository.findByIdOrThrow(id);
 
@@ -120,6 +125,7 @@ public class RoomService {
      * Admin xóa một phòng vật lý khỏi hệ thống.
      */
     @Transactional
+    @CacheEvict(value = "rooms", allEntries = true)
     public void deleteRoom(UUID id) {
         Room room = roomRepository.findByIdOrThrow(id);
         roomRepository.delete(room);
@@ -133,6 +139,7 @@ public class RoomService {
      * Lấy toàn bộ danh sách phòng vật lý (bao gồm cả phòng đang bận) cho trang quản lý kho phòng.
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "rooms", key = "'all'")
     public List<RoomResponse> getAllRooms() {
         return roomRepository.findAll().stream()
                 .map(room -> modelMapper.map(room, RoomResponse.class))
@@ -143,6 +150,7 @@ public class RoomService {
      * Truy vấn thông tin chi tiết một phòng bằng ID phòng.
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "rooms", key = "#id")
     public RoomResponse getRoomById(UUID id) {
         Room room = roomRepository.findByIdOrThrow(id);
 
@@ -160,6 +168,7 @@ public class RoomService {
      * Lấy toàn bộ danh sách phòng có trạng thái hiện tại là AVAILABLE (trống).
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "rooms", key = "'available'")
     public List<RoomResponse> getAvailableRooms() {
         List<Room> rooms = roomRepository.findByStatus(RoomStatus.AVAILABLE);
         return rooms.stream()
