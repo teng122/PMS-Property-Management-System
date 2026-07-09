@@ -200,10 +200,6 @@ function BookingDetailModal({
           return bookingApi.noShow(booking.id);
         case "check-out":
           return bookingApi.checkOut(booking.id);
-        case "delete":
-          if (!confirm("Xoá đặt phòng này?")) return null;
-          await bookingApi.remove(booking.id);
-          return null;
         default:
           return null;
       }
@@ -216,9 +212,6 @@ function BookingDetailModal({
       }
       if (variables.action === "check-out") {
         onMessage("Đã trả phòng. Hoá đơn đang được chuẩn bị, vui lòng mở mục Hoá đơn để theo dõi và thanh toán.");
-      } else if (variables.action === "delete") {
-        onClose();
-        onMessage("Đã xoá đặt phòng.");
       } else {
         onMessage("Đã cập nhật đặt phòng.");
       }
@@ -312,11 +305,6 @@ function BookingDetailModal({
                 {isReception && booking.status === "CHECKED_IN" ? (
                   <Button disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "check-out", booking })}>
                     Trả phòng
-                  </Button>
-                ) : null}
-                {user?.role === "ADMIN" ? (
-                  <Button variant="danger" disabled={mutation.isPending} onClick={() => mutation.mutate({ action: "delete", booking })}>
-                    Xoá đặt phòng
                   </Button>
                 ) : null}
                 {isReception ? (
