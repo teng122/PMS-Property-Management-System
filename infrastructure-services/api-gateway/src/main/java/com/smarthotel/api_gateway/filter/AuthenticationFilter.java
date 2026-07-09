@@ -96,7 +96,8 @@ public class AuthenticationFilter implements Filter {
     }
 
     private boolean isPublicPath(String path) {
-        return path.equals("/identity-service/api/auth/login") ||
+        return path.startsWith("/fallback") ||
+               path.equals("/identity-service/api/auth/login") ||
                path.equals("/identity-service/api/auth/register") ||
                path.equals("/identity-service/api/auth/validate") ||
                path.equals("/identity-service/api/auth/refresh") ||

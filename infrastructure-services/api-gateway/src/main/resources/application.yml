@@ -22,6 +22,10 @@ spring:
                 - Path=/amenities-service/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    id: amenitiesServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/amenities-service
 
             - id: room-service-route
               uri: lb://room-service
@@ -29,6 +33,10 @@ spring:
                 - Path=/room-service/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    id: roomServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/room-service
 
             - id: booking-service-route
               uri: lb://booking-service
@@ -36,6 +44,10 @@ spring:
                 - Path=/booking-service/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    id: bookingServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/booking-service
 
             - id: billing-service-route
               uri: lb://billing-service
@@ -43,6 +55,10 @@ spring:
                 - Path=/billing-service/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    id: billingServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/billing-service
 
             - id: housekeeping-service-route
               uri: lb://housekeeping-service
@@ -50,6 +66,10 @@ spring:
                 - Path=/housekeeping-service/**
               filters:
                 - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    id: housekeepingServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/housekeeping-service
 eureka:
   client:
     service-url:
@@ -76,3 +96,22 @@ logging:
 
 jwt:
   secret: ${JWT_SECRET:3c983a532b4084d5a864bc1fcd89045b4c102047385a86cfef4e659b85c1817c}
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+    instances:
+      bookingServiceCircuitBreaker:
+        baseConfig: default
+      roomServiceCircuitBreaker:
+        baseConfig: default
+      amenitiesServiceCircuitBreaker:
+        baseConfig: default
+      housekeepingServiceCircuitBreaker:
+        baseConfig: default
+      billingServiceCircuitBreaker:
+        baseConfig: default
