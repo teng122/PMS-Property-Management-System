@@ -43,6 +43,16 @@ public class Booking {
     @Column(name = "is_deposit_paid", nullable = false)
     private Boolean isDepositPaid;
 
+    @Column(name = "created_at", nullable = true, updatable = false)
+    private LocalDateTime createdAt;
+
     @Version
     private Long version;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 }

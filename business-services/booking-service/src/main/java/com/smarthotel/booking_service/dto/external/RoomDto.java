@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 public class RoomDto {
     private UUID id;
     private String roomNumber;
-    private String roomType;
+    private String type;
     private String status;
     private BigDecimal price;
     private UUID reservedBookingId;

@@ -97,7 +97,7 @@ export interface RoomStatusUpdateRequest {
 export interface RoomSearchResult {
   id: UUID;
   roomNumber: string;
-  roomType: RoomType;
+  type: RoomType;
   status: RoomStatus;
   price: number;
   reservedBookingId?: UUID | null;

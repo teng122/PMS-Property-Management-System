@@ -7,6 +7,8 @@ export interface Column<T> {
   key: string;
   header: string;
   render: (row: T) => ReactNode;
+  width?: string | number;
+  align?: "left" | "center" | "right";
 }
 
 export function DataTable<T>({
@@ -52,7 +54,7 @@ export function DataTable<T>({
             <thead>
               <tr>
                 {columns.map((column) => (
-                  <th key={column.key}>{column.header}</th>
+                  <th key={column.key} style={{ width: column.width, textAlign: column.align }}>{column.header}</th>
                 ))}
               </tr>
             </thead>
@@ -60,7 +62,7 @@ export function DataTable<T>({
               {filtered.map((row) => (
                 <tr key={getRowKey(row)}>
                   {columns.map((column) => (
-                    <td key={column.key}>{column.render(row)}</td>
+                    <td key={column.key} style={{ width: column.width, textAlign: column.align }}>{column.render(row)}</td>
                   ))}
                 </tr>
               ))}

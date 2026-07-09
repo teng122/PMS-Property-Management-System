@@ -68,6 +68,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Object> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", ex.getStatusCode().value());
+        body.put("error", HttpStatus.valueOf(ex.getStatusCode().value()).getReasonPhrase());
+        body.put("message", ex.getReason());
+
+        return new ResponseEntity<>(body, ex.getStatusCode());
+    }
+
     // Bạn có thể giữ lại hàm này nếu muốn bắt các lỗi hệ thống đột xuất khác
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
