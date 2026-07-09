@@ -173,6 +173,7 @@ public class AmenityOrderService {
     public List<AmenityOrderResponse> getUnpaidByRoomId(UUID roomId) {
         List<com.smarthotel.amenities_service.entity.AmenityOrderStatus> unpaidStatuses = Arrays.asList(
                 com.smarthotel.amenities_service.entity.AmenityOrderStatus.PENDING,
+                com.smarthotel.amenities_service.entity.AmenityOrderStatus.PREPARING,
                 com.smarthotel.amenities_service.entity.AmenityOrderStatus.DELIVERED
         );
         List<AmenityOrder> orders = amenityOrderRepository.findByRoomIdAndStatusIn(roomId, unpaidStatuses);
@@ -187,6 +188,7 @@ public class AmenityOrderService {
     public List<AmenityOrderResponse> getUnpaidByBookingId(UUID bookingId) {
         List<com.smarthotel.amenities_service.entity.AmenityOrderStatus> unpaidStatuses = Arrays.asList(
                 com.smarthotel.amenities_service.entity.AmenityOrderStatus.PENDING,
+                com.smarthotel.amenities_service.entity.AmenityOrderStatus.PREPARING,
                 com.smarthotel.amenities_service.entity.AmenityOrderStatus.DELIVERED
         );
         List<AmenityOrder> orders = amenityOrderRepository.findByBookingIdAndStatusIn(bookingId, unpaidStatuses);
@@ -201,6 +203,7 @@ public class AmenityOrderService {
     public java.math.BigDecimal getUnpaidChargeByBookingId(UUID bookingId) {
         List<com.smarthotel.amenities_service.entity.AmenityOrderStatus> unpaidStatuses = Arrays.asList(
                 com.smarthotel.amenities_service.entity.AmenityOrderStatus.PENDING,
+                com.smarthotel.amenities_service.entity.AmenityOrderStatus.PREPARING,
                 com.smarthotel.amenities_service.entity.AmenityOrderStatus.DELIVERED
         );
         List<AmenityOrder> orders = amenityOrderRepository.findByBookingIdAndStatusIn(bookingId, unpaidStatuses);
