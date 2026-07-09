@@ -1,5 +1,10 @@
 export function money(value?: number | null) {
-  return `$${Number(value || 0).toFixed(2)}`;
+  const amount = Number(value || 0);
+  const amountInVnd = Math.abs(amount) < 10000 ? amount * 1000 : amount;
+
+  return `${new Intl.NumberFormat("vi-VN", {
+    maximumFractionDigits: 0
+  }).format(amountInVnd)} VND`;
 }
 
 export function dateTime(value?: string | null) {

@@ -205,6 +205,19 @@ public class BookingController {
         return ResponseEntity.ok(BookingResponse.from(booking));
     }
 
+    /**
+     * Gọi nội bộ (Feign) — vd amenities kiểm tra phòng có khách đang lưu trú trước khi cho gọi dịch vụ.
+     * permitAll: không phụ thuộc role của người bấm (amenities tự kiểm quyền sở hữu của CUSTOMER).
+     */
+    @GetMapping("/internal/active/room/{roomId}")
+    public ResponseEntity<BookingResponse> getActiveBookingByRoomIdInternal(@PathVariable("roomId") UUID roomId) {
+        Booking booking = bookingService.getActiveBookingByRoomId(roomId);
+        if (booking == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(BookingResponse.from(booking));
+    }
+
     @GetMapping("/check-availability")
     public ResponseEntity<Boolean> checkAvailability(
             @RequestParam("roomId") UUID roomId,

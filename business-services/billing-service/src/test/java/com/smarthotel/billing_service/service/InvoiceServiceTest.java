@@ -1,6 +1,7 @@
 package com.smarthotel.billing_service.service;
 
 import com.smarthotel.billing_service.dto.InvoiceResponse;
+import com.smarthotel.billing_service.dto.PaymentInitResponse;
 import com.smarthotel.billing_service.entity.Invoice;
 import com.smarthotel.billing_service.entity.InvoiceStatus;
 import com.smarthotel.billing_service.repository.InvoiceRepository;
@@ -29,6 +30,21 @@ class InvoiceServiceTest {
 
         // save returns the invoice entity itself
         when(repo.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    @Test
+    void initPayment_amountNhoDuocDoiSangVndThat() {
+        UUID id = UUID.randomUUID();
+        Invoice inv = new Invoice();
+        inv.setId(id);
+        inv.setBookingId(UUID.randomUUID());
+        inv.setTotalAmount(new BigDecimal("82"));
+        when(repo.findByIdOrThrow(id)).thenReturn(inv);
+
+        PaymentInitResponse resp = service.initPayment(id);
+
+        assertThat(resp.amount()).isEqualByComparingTo(new BigDecimal("82000"));
+        assertThat(resp.qrImageUrl()).contains("amount=82000");
     }
 
     @Test

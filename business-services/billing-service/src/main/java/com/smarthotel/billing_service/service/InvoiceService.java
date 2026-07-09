@@ -24,6 +24,8 @@ import java.util.UUID;
 public class InvoiceService {
 
     private static final BigDecimal VAT_RATE = new BigDecimal("0.10");
+    private static final BigDecimal VND_THOUSAND_UNIT_FACTOR = new BigDecimal("1000");
+    private static final BigDecimal VND_ALREADY_NORMALIZED_THRESHOLD = new BigDecimal("10000");
 
     private final InvoiceRepository repo;
 
@@ -40,10 +42,23 @@ public class InvoiceService {
      */
     public PaymentInitResponse initPayment(UUID id) {
         Invoice inv = findById(id);
+        BigDecimal paymentAmount = normalizeToVnd(inv.getTotalAmount());
         String qrUrl = "https://img.vietqr.io/image/970415-113366668888-compact2.png"
-                + "?amount=" + inv.getTotalAmount().toBigInteger()
+                + "?amount=" + paymentAmount.toPlainString()
                 + "&addInfo=INV" + inv.getId();
-        return new PaymentInitResponse(qrUrl, inv.getTotalAmount(), "WAITING_BANK");
+        return new PaymentInitResponse(qrUrl, paymentAmount, "WAITING_BANK");
+    }
+
+    private BigDecimal normalizeToVnd(BigDecimal amount) {
+        if (amount == null) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal normalized = amount.abs().compareTo(VND_ALREADY_NORMALIZED_THRESHOLD) < 0
+                ? amount.multiply(VND_THOUSAND_UNIT_FACTOR)
+                : amount;
+
+        return normalized.setScale(0, RoundingMode.HALF_UP);
     }
 
     /**

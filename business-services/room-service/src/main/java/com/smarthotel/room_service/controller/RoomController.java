@@ -48,6 +48,18 @@ public class RoomController {
     }
 
     /**
+     * Cập nhật trạng thái phòng cho gọi nội bộ (Feign) — vd housekeeping (STAFF) đặt CLEANING khi bắt đầu dọn,
+     * booking đặt OCCUPIED khi check-in. Không giới hạn role vì đây là luồng service-to-service
+     * (đã qua Gateway/mạng nội bộ), tránh phụ thuộc vào role của người bấm.
+     */
+    @PutMapping("/internal/{id}/status")
+    public ResponseEntity<RoomResponse> updateRoomStatusInternal(
+            @PathVariable("id") UUID id,
+            @RequestBody RoomStatusUpdateRequest request) {
+        return ResponseEntity.ok(roomService.updateRoomStatus(id, request));
+    }
+
+    /**
      * Admin cập nhật thông tin chi tiết một phòng.
      */
     @PutMapping("/{id}")
